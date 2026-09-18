@@ -1,8 +1,8 @@
 # Project F
 
-Private local development workspace for an experimental decision language.
+An experimental decision language for AI systems that propose alternatives, test them against snapshots, and apply a selected change through an explicit commit boundary. The language's working name is Foresee.
 
-This checkout is intentionally ahead of the public placeholder repository. Do not push it until disclosure is explicitly approved.
+Start with the [ten-day development plan](docs/development-plan.md) for daily implementation work, acceptance checks, and release scope.
 
 ## Bootstrap prototype
 
@@ -11,12 +11,14 @@ The current prototype is a Python standard-library reference implementation. It 
 - resource and model declarations
 - declared effects
 - immutable snapshots
-- fixture-backed typed plan proposals
+- fixture-backed plan proposals
 - isolated candidate exploration
 - domain checks and integer metrics
 - complete-set selection
 - transactional commit with a target receipt ledger
-- stale-state rejection and offline replay
+- stale-state rejection and offline report verification
+
+Requires Python 3.11 or newer. Run these commands from the repository root. No model API key is needed.
 
 Run the demo:
 
@@ -43,3 +45,7 @@ python3 -m foresee replay build/demo/run-report.json
 ```
 
 The [bootstrap language contract](docs/bootstrap-language.md) describes the grammar, phase model, transaction protocol, replay evidence, and Rust production path. This is a bootstrap subset, not the complete language described in the design handbook.
+
+## Current limits
+
+This is an early reference implementation for one SQLite catalog demo. Resource types, method signatures, branch isolation, and single-use selection capabilities are not yet fully enforced. The runtime is not a security sandbox. The replay command currently verifies a report checksum and displays recorded results; it does not independently re-execute the decision or authenticate the report's author. The development plan addresses these gaps before an alpha release.

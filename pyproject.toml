@@ -1,0 +1,11 @@
+[project]
+name = "project-f-bootstrap"
+version = "0.0.1"
+description = "Local bootstrap compiler for Project F"
+requires-python = ">=3.11"
+
+[project.scripts]
+foresee = "foresee.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["foresee*"]

@@ -1,0 +1,17 @@
+// A decision is a bounded experiment followed by one guarded effect.
+resource catalog: Catalog;
+model planner: Planner;
+
+decision repair_catalog() -> DecisionResult
+! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {
+    let base = snapshot catalog;
+    let plans = propose planner<Patch>(base, "Fill only derived unit prices", 4);
+    let trials = explore plan in plans from base {
+        let after = simulate catalog.apply(plan);
+        check catalog.source_fields_unchanged(after, base) else "Source fields changed";
+        check catalog.valid_unit_arithmetic(after) else "Unit price arithmetic is invalid";
+        measure unresolved: Int = catalog.unresolved_units(after);
+    };
+    let chosen = select trials minimize unresolved;
+    return commit chosen to catalog;
+}

@@ -12,6 +12,7 @@ from .model import (
     Statement,
     Token,
 )
+from .signatures import RETURN_TYPE
 
 
 class Parser:
@@ -80,7 +81,9 @@ class Parser:
         self.expect("(")
         self.expect(")")
         if self.match("->"):
-            self.expect_kind("IDENT")
+            if not self.is_value(RETURN_TYPE):
+                self.fail(f"only {RETURN_TYPE} returns are supported")
+            self.advance()
         self.expect("!")
         self.expect("{")
         effects: list[tuple[str, str]] = []
@@ -111,7 +114,7 @@ class Parser:
         if self.match("let"):
             name = self.expect_kind("IDENT").value
             if self.match(":"):
-                self.expect_kind("IDENT")
+                self.fail("let type annotations are not supported yet")
             self.expect("=")
             value = self.parse_expr()
             self.expect(";")

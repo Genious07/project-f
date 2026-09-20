@@ -5,6 +5,14 @@ from pathlib import Path
 from typing import Any
 
 from .catalog import Catalog, Snapshot, fixture_plans, stable_digest
+from .signatures import BRANCH_FORBIDDEN, METHODS
+
+
+CATALOG_METHODS = {
+    "source_fields_unchanged": Catalog.source_fields_unchanged,
+    "valid_unit_arithmetic": Catalog.valid_unit_arithmetic,
+    "unresolved_units": Catalog.unresolved_units,
+}
 
 
 def snapshot_json(snapshot: Snapshot) -> dict[str, Any]:
@@ -24,6 +32,8 @@ class Runtime:
         self.selection: dict[str, Any] | None = None
 
     def run(self) -> dict[str, Any]:
+        if len(self.ir["decisions"]) != 1:
+            raise RuntimeError("runtime requires exactly one decision")
         decision = self.ir["decisions"][0]
         env: dict[str, Any] = {}
         outcome: dict[str, Any] | None = None
@@ -31,6 +41,7 @@ class Runtime:
             value = self.exec_statement(statement, env, branch=False)
             if statement["statement"] == "return":
                 outcome = value
+                break
         report = {
             "report_version": "0.0.1",
             "program_digest": self.ir["program_digest"],
@@ -44,6 +55,10 @@ class Runtime:
 
     def exec_statement(self, statement: dict[str, Any], env: dict[str, Any], branch: bool) -> Any:
         kind = statement["statement"]
+        if branch and kind == "return":
+            raise RuntimeError("return is forbidden inside explore")
+        if not branch and kind in {"check", "measure"}:
+            raise RuntimeError(f"{kind} requires exploration")
         if kind == "let":
             value = self.eval_expr(statement["value"], env, branch)
             env[statement["name"]] = value
@@ -51,17 +66,23 @@ class Runtime:
         if kind == "return":
             return self.eval_expr(statement["value"], env, branch)
         if kind == "check":
-            passed = bool(self.eval_expr(statement["condition"], env, branch))
+            passed = self.eval_expr(statement["condition"], env, branch)
+            if type(passed) is not bool:
+                raise RuntimeError("check requires a Boolean")
             env.setdefault("__checks__", []).append({"passed": passed, "message": statement["message"]})
             return passed
         if kind == "measure":
             value = self.eval_expr(statement["value"], env, branch)
+            if type(value) is not int:
+                raise RuntimeError("measure requires an integer")
             env.setdefault("__metrics__", {})[statement["name"]] = value
             return value
         raise RuntimeError(f"unknown statement {kind}")
 
     def eval_expr(self, expr: dict[str, Any], env: dict[str, Any], branch: bool) -> Any:
         op = expr["op"]
+        if branch and op in BRANCH_FORBIDDEN:
+            raise RuntimeError(f"{op} is forbidden inside explore")
         if op in {"string", "int"}:
             return expr["value"]
         if op == "var":
@@ -70,16 +91,24 @@ class Runtime:
             return self.catalog.snapshot()
         if op == "propose":
             args = [self.eval_expr(arg, env, branch) for arg in expr["args"]]
+            if len(args) != 3 or not isinstance(args[0], Snapshot) or not isinstance(args[1], str) or type(args[2]) is not int or not 1 <= args[2] <= 4:
+                raise RuntimeError("invalid fixture proposal arguments")
             base = args[0]
-            limit = int(args[-1])
+            limit = args[2]
             return fixture_plans(base, limit)
         if op == "simulate":
+            if not branch or expr["method"] != "apply":
+                raise RuntimeError("simulate requires explore and the apply method")
             args = [self.eval_expr(arg, env, branch) for arg in expr["args"]]
             return Catalog.apply_to_snapshot(env.get("__base__"), args[0])
         if op == "call":
+            name = expr["method"]
+            if name not in CATALOG_METHODS or expr["target"] not in {r["name"] for r in self.ir["resources"]}:
+                raise RuntimeError("unknown resource method")
             args = [self.eval_expr(arg, env, branch) for arg in expr["args"]]
-            method = getattr(Catalog, expr["method"])
-            return method(*args)
+            if len(args) != len(METHODS[name][0]) or not all(isinstance(arg, Snapshot) for arg in args):
+                raise RuntimeError("invalid resource method arguments")
+            return CATALOG_METHODS[name](*args)
         if op == "explore":
             plans = self.eval_expr(expr["plans"], env, branch)
             base = self.eval_expr(expr["base"], env, branch)

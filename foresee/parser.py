@@ -113,12 +113,16 @@ class Parser:
         start = self.current().span
         if self.match("let"):
             name = self.expect_kind("IDENT").value
+            annotation = None
             if self.match(":"):
-                self.fail("let type annotations are not supported yet")
+                annotation = {"name": self.expect_kind("IDENT").value, "resource": None}
+                if self.match("<"):
+                    annotation["resource"] = self.expect_kind("IDENT").value
+                    self.expect(">")
             self.expect("=")
             value = self.parse_expr()
             self.expect(";")
-            return Statement("let", {"name": name, "value": value}, start)
+            return Statement("let", {"name": name, "value": value, "annotation": annotation}, start)
         if self.match("return"):
             value = self.parse_expr()
             self.expect(";")

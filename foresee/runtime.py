@@ -25,6 +25,8 @@ def snapshot_from_json(value: dict[str, Any]) -> Snapshot:
 
 class Runtime:
     def __init__(self, ir: dict[str, Any], catalog: Catalog, simulate_stale: bool = False):
+        if ir.get("schema_version") != "0.0.2":
+            raise RuntimeError("unsupported IR schema; rebuild source with the current compiler")
         self.ir = ir
         self.catalog = catalog
         self.simulate_stale = simulate_stale

@@ -12,24 +12,26 @@ from .signatures import (BRANCH_FORBIDDEN, EFFECTS, METHODS, MODEL_TYPE, PLAN_TY
                          PROPOSE_ARGS, RESOURCE_TYPE, SIMULATE_ARGS, accepts)
 
 
-def _expr_json(expr: Expr) -> dict[str, Any]:
+def _expr_json(expr: Expr, types: dict[int, Binding]) -> dict[str, Any]:
     data: dict[str, Any] = {}
     for key, value in expr.data.items():
         if isinstance(value, Expr):
-            data[key] = _expr_json(value)
+            data[key] = _expr_json(value, types)
         elif isinstance(value, tuple) and (not value or isinstance(value[0], Expr)):
-            data[key] = [_expr_json(item) for item in value]
+            data[key] = [_expr_json(item, types) for item in value]
         elif isinstance(value, (list, tuple)) and (not value or isinstance(value[0], Statement)):
-            data[key] = [_statement_json(item) for item in value]
+            data[key] = [_statement_json(item, types) for item in value]
         else:
             data[key] = value
-    return {"op": expr.kind, **data}
+    return {"op": expr.kind, "inferred_type": asdict(types[id(expr)]), **data}
 
 
-def _statement_json(statement: Statement) -> dict[str, Any]:
+def _statement_json(statement: Statement, types: dict[int, Binding]) -> dict[str, Any]:
     data = {}
     for key, value in statement.data.items():
-        data[key] = _expr_json(value) if isinstance(value, Expr) else value
+        if key == "annotation":
+            continue  # Checked annotations do not change executable semantics.
+        data[key] = _expr_json(value, types) if isinstance(value, Expr) else value
     return {"statement": statement.kind, **data}
 
 
@@ -39,6 +41,9 @@ class Checker:
         self.resources = {item.name for item in program.resources}
         self.models = {item.name for item in program.models}
         self.diagnostics: list[Diagnostic] = []
+        self.types: dict[int, Binding] = {}
+        self.snapshot_count = 0
+        self.branch_base: Binding | None = None
 
     def error(self, code: str, message: str, span: Span, note: str | None = None) -> None:
         self.diagnostics.append(Diagnostic(code, message, span, note))
@@ -91,6 +96,17 @@ class Checker:
             if name in env:
                 self.error("F3003", f"binding {name!r} already exists", statement.span)
             env[name] = self.check_expr(statement.data["value"], env, used, branch_resource)
+            annotation = statement.data.get("annotation")
+            if annotation is not None:
+                names = {"Int": "int", "String": "string", "Bool": "bool",
+                         "Snapshot": "snapshot", "Plan": "plan", "Plans": "plans",
+                         "Simulated": "simulated", "Trials": "trials", "Selected": "selected",
+                         "DecisionResult": "outcome"}
+                inferred = env[name]
+                expected = names.get(annotation["name"])
+                expected_resource = None if expected in {"int", "string", "bool", "outcome"} else inferred.resource
+                if expected != inferred.kind or annotation["resource"] != expected_resource:
+                    self.error("F3300", "annotation does not match inferred type and resource", statement.span)
         elif statement.kind == "return":
             result = self.check_expr(statement.data["value"], env, used, branch_resource)
             if branch_resource is not None or result.kind != "outcome":
@@ -110,6 +126,18 @@ class Checker:
         return args
 
     def check_expr(
+        self, expr: Expr, env: dict[str, Binding], used: set[tuple[str, str]],
+        branch_resource: str | None,
+    ) -> Binding:
+        result = self.infer_expr(expr, env, used, branch_resource)
+        self.types[id(expr)] = result
+        return result
+
+    def same_origin(self, left: Binding, right: Binding, span: Span) -> None:
+        if left.resource != right.resource or left.lineage != right.lineage:
+            self.error("F3301", "values must belong to the same resource and snapshot", span)
+
+    def infer_expr(
         self,
         expr: Expr,
         env: dict[str, Binding],
@@ -132,19 +160,21 @@ class Checker:
             if resource not in self.resources:
                 self.error("F3005", f"unknown resource {resource!r}", expr.span)
             used.add(("Snapshot", resource))
-            return Binding("snapshot", resource)
+            self.snapshot_count += 1
+            return Binding("snapshot", resource, lineage=f"snapshot:{self.snapshot_count}")
         if kind == "propose":
             model = expr.data["model"]
             if model not in self.models:
                 self.error("F3006", f"unknown model {model!r}", expr.span)
             used.add(("Infer", model))
-            self.arguments(expr, PROPOSE_ARGS, env, used, branch_resource)
+            arg_types = self.arguments(expr, PROPOSE_ARGS, env, used, branch_resource)
             args = expr.data["args"]
             if expr.data["plan_type"] != PLAN_TYPE:
                 self.error("F3208", "only Patch proposals are supported", expr.span)
             if len(args) == 3 and (args[2].kind != "int" or not 1 <= args[2].data["value"] <= 4):
                 self.error("F3208", "fixture proposal count must be a literal from 1 to 4", expr.span)
-            return Binding("plans")
+            base = arg_types[0] if arg_types else Binding("error")
+            return Binding("plans", base.resource, lineage=base.lineage)
         if kind == "explore":
             plans = self.check_expr(expr.data["plans"], env, used, branch_resource)
             base = self.check_expr(expr.data["base"], env, used, branch_resource)
@@ -153,10 +183,13 @@ class Checker:
                 self.error("F3101", "explore requires a plan set and a snapshot", expr.span)
                 resource = "<error>"
             used.add(("Explore", resource))
+            self.same_origin(plans, base, expr.span)
             local = dict(env)
             if expr.data["item"] in local or expr.data["item"].startswith("__") or expr.data["item"] in self.resources | self.models:
                 self.error("F3204", "exploration binding shadows an existing or reserved name", expr.span)
-            local[expr.data["item"]] = Binding("plan", resource)
+            local[expr.data["item"]] = Binding("plan", resource, lineage=base.lineage)
+            previous_base = self.branch_base
+            self.branch_base = base
             metrics: list[str] = []
             for statement in expr.data["body"]:
                 self.check_statement(statement, local, used, branch_resource=resource)
@@ -164,7 +197,8 @@ class Checker:
                     if statement.data["name"] in metrics:
                         self.error("F3209", "duplicate metric name", statement.span)
                     metrics.append(statement.data["name"])
-            return Binding("trials", resource, tuple(metrics))
+            self.branch_base = previous_base
+            return Binding("trials", resource, tuple(metrics), base.lineage)
         if kind == "simulate":
             resource = expr.data["resource"]
             if branch_resource is None:
@@ -173,14 +207,23 @@ class Checker:
                 self.error("F3104", "simulation resource must match the explore snapshot", expr.span)
             if expr.data["method"] != "apply" or resource not in self.resources:
                 self.error("F3210", "simulate supports only a declared resource's apply method", expr.span)
-            self.arguments(expr, SIMULATE_ARGS, env, used, branch_resource)
-            return Binding("simulated", resource)
+            args = self.arguments(expr, SIMULATE_ARGS, env, used, branch_resource)
+            if args and self.branch_base:
+                self.same_origin(args[0], self.branch_base, expr.span)
+            return Binding("simulated", resource, lineage=self.branch_base.lineage if self.branch_base else None)
         if kind == "call":
             signature = METHODS.get(expr.data["method"])
             if signature is None or expr.data["target"] not in self.resources:
                 self.error("F3210", "unknown resource method", expr.span)
                 return Binding("error")
-            self.arguments(expr, signature[0], env, used, branch_resource)
+            args = self.arguments(expr, signature[0], env, used, branch_resource)
+            for arg in args:
+                if arg.resource != expr.data["target"]:
+                    self.error("F3301", "method argument belongs to a different resource", expr.span)
+                if args:
+                    self.same_origin(arg, args[0], expr.span)
+                if self.branch_base:
+                    self.same_origin(arg, self.branch_base, expr.span)
             return Binding(signature[1])
         if kind == "select":
             trials = self.check_expr(expr.data["trials"], env, used, branch_resource)
@@ -189,7 +232,7 @@ class Checker:
                 self.error("F3105", "select requires exploration trials", expr.span)
             elif metric not in trials.metric_names:
                 self.error("F3106", f"metric {metric!r} is not measured by these trials", expr.span)
-            return Binding("selected", trials.resource)
+            return Binding("selected", trials.resource, lineage=trials.lineage)
         if kind == "commit":
             resource = expr.data["resource"]
             if branch_resource is not None:
@@ -198,7 +241,7 @@ class Checker:
             if selected.kind != "selected" or selected.resource != resource:
                 self.error("F3107", "commit requires Selected data for the same resource", expr.span)
             used.add(("Commit", resource))
-            return Binding("outcome", resource)
+            return Binding("outcome", resource, lineage=selected.lineage)
         self.error("F3999", f"unsupported expression {kind}", expr.span)
         return Binding("error")
 
@@ -206,16 +249,17 @@ class Checker:
 def compile_source(source: str, source_name: str = "<memory>") -> dict[str, Any]:
     del source_name
     program = parse(lex(source))
-    Checker(program).check()
+    checker = Checker(program)
+    checker.check()
     ir: dict[str, Any] = {
-        "schema_version": "0.0.1",
-        "resources": [asdict(item) | {"span": asdict(item.span)} for item in program.resources],
-        "models": [asdict(item) | {"span": asdict(item.span)} for item in program.models],
+        "schema_version": "0.0.2",
+        "resources": [{"name": item.name, "type_name": item.type_name} for item in program.resources],
+        "models": [{"name": item.name, "type_name": item.type_name} for item in program.models],
         "decisions": [
             {
                 "name": item.name,
-                "effects": [{"kind": kind, "target": target} for kind, target in item.effects],
-                "body": [_statement_json(statement) for statement in item.body],
+                "effects": [{"kind": kind, "target": target} for kind, target in sorted(set(item.effects))],
+                "body": [_statement_json(statement, checker.types) for statement in item.body],
             }
             for item in program.decisions
         ],

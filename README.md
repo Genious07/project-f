@@ -48,6 +48,6 @@ The [bootstrap language contract](docs/bootstrap-language.md) describes the gram
 
 ## Current limits
 
-This is an early reference implementation for one SQLite catalog demo. Day 1 adds supported-type and method-signature validation, explicit runtime dispatch, and guards against live operations inside exploration. Full snapshot identity, immutable branch values, and single-use selection capabilities remain unfinished. The runtime is not a security sandbox. The replay command currently verifies a report checksum and displays recorded results; it does not independently re-execute the decision or authenticate the report's author. The development plan addresses these gaps before an alpha release.
+This is an early reference implementation for one SQLite catalog demo. Day 1 adds supported-type and method-signature validation, explicit runtime dispatch, and guards against live operations inside exploration. Day 2 adds [typed IR](docs/typed-ir.md), checked annotations, static snapshot lineage, and formatting-independent program digests. Runtime capability enforcement, immutable branch values, and single-use selections remain unfinished. The runtime is not a security sandbox. The replay command currently verifies a report checksum and displays recorded results; it does not independently re-execute the decision or authenticate the report's author. The development plan addresses these gaps before an alpha release.
 
 See the [development progress log](docs/progress.md) for completed milestones and validation evidence.

@@ -16,13 +16,13 @@ The compiler records used effects and rejects any effect absent from the decisio
 
 ## Executable subset after Day 1
 
-Exactly one `Catalog` resource, one `Planner` model, and one decision are supported. Names may be chosen by the author. Decisions have no parameters and must end with exactly one outcome return. An optional return annotation must be `DecisionResult`. Let annotations are rejected until typed annotations are implemented.
+Exactly one `Catalog` resource, one `Planner` model, and one decision are supported. Names may be chosen by the author. Decisions have no parameters and must end with exactly one outcome return. An optional return annotation must be `DecisionResult`. Day 2 adds checked let annotations as described in the [typed IR contract](typed-ir.md).
 
 The shared `foresee/signatures.py` registry defines effects and method signatures. `Snapshot`, `Explore`, and `Commit` target the resource; `Infer` targets the model. Proposals take a snapshot, a string prompt, and a literal candidate count from 1 to 4, with plan type `Patch`. Simulation supports only `apply(plan)`. The only callable catalog methods are `source_fields_unchanged(state, state)`, `valid_unit_arithmetic(state)`, and `unresolved_units(state)`.
 
 Checks require Boolean results. Metrics require integer expressions and the `Int` annotation. Duplicate metric names are rejected. Exploration cannot snapshot live state, call a proposal provider, nest exploration, select, commit, or return. Names beginning with `__` are reserved for interpreter state; resource and model names cannot be shadowed by local bindings. Unsupported forms produce compile diagnostics before the CLI opens a database.
 
-Runtime dispatch uses an explicit method table and rejects branch effects independently. This is defense in depth for compiler-produced IR, not a sandbox for hostile Python callers or arbitrary edited IR. Full resource/snapshot identity and affine selection types remain future milestones.
+Runtime dispatch uses an explicit method table and rejects branch effects independently. This is defense in depth for compiler-produced IR, not a sandbox for hostile Python callers or arbitrary edited IR. Day 2 statically tracks resource and snapshot lineage. Runtime capability enforcement and affine selection types remain future milestones.
 
 ## Bootstrap grammar
 
@@ -34,7 +34,7 @@ decision      = "decision" name "(" ")" [ "->" type ]
                 "!" "{" effect { "," effect } "}" block ;
 effect        = name "(" name ")" ;
 block         = "{" { statement } "}" ;
-statement     = "let" name "=" expression ";"
+statement     = "let" name [ ":" annotation ] "=" expression ";"
               | "check" expression "else" string ";"
               | "measure" name ":" type "=" expression ";"
               | "return" expression ";" ;
@@ -47,6 +47,7 @@ expression    = "snapshot" name
               | name [ "." name arguments ]
               | string | integer ;
 arguments     = "(" [ expression { "," expression } ] ")" ;
+annotation    = type [ "<" name ">" ] ;
 ```
 
 ## Commit protocol

@@ -81,8 +81,9 @@ class CompileFailure(Exception):
         super().__init__("compilation failed")
 
 
-@dataclass
+@dataclass(frozen=True)
 class Binding:
     kind: str
     resource: str | None = None
     metric_names: tuple[str, ...] = field(default_factory=tuple)
+    lineage: str | None = None

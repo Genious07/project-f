@@ -6,6 +6,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from types import MappingProxyType
 
 
 def stable_digest(value: Any) -> str:
@@ -18,6 +19,16 @@ class Snapshot:
     revision: int
     rows: tuple[dict[str, Any], ...]
     digest: str
+
+    def __post_init__(self):
+        # Catalog row fields are scalar values, so a copied read-only mapping
+        # closes the mutable row alias without exposing the source dictionary.
+        if any(type(value) not in (str, int, float, bool, type(None)) for row in self.rows for value in row.values()):
+            raise ValueError("snapshot row values must be immutable scalars")
+        object.__setattr__(self, "rows", tuple(MappingProxyType(dict(row)) for row in self.rows))
+
+    def __deepcopy__(self, memo):
+        return self
 
 
 class Catalog:

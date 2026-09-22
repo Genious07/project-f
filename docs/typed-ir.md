@@ -1,4 +1,4 @@
-# Typed IR contract, schema 0.0.2
+# Typed IR contract, schema 0.0.3
 
 Each expression contains `inferred_type` with four fields:
 
@@ -15,7 +15,7 @@ Snapshot expressions receive deterministic identities `snapshot:1`, `snapshot:2`
 
 Proposals inherit the input snapshot's resource and lineage. Exploration requires its proposal set and base snapshot to match. Each candidate plan and simulated state inherits that origin. Catalog calls inside exploration must read states from that branch's origin. Comparisons cannot mix states from different snapshots. Trials, selections, and commit outcomes preserve the same origin.
 
-This release still supports one resource per executable program. The checker additionally validates receiver/resource identity, but multi-resource runtime support is not shipped. IR types describe compiler-checked source; editing JSON types does not create a trustworthy capability. Arbitrary hostile IR is outside the runtime trust model.
+This release still supports one resource per executable program. The checker additionally validates receiver/resource identity, but multi-resource runtime support is not shipped. IR types describe compiler-checked source; editing JSON types does not create a trustworthy capability. Runtime-issued selection tokens enforce the commit boundary. Arbitrary hostile IR is outside the runtime trust model.
 
 ## Annotations
 
@@ -36,6 +36,6 @@ This is a structural semantic identity, not an equivalence proof. Renaming bindi
 
 ## Version policy
 
-Schema 0.0.2 adds expression types and removes source spans from emitted declarations. The runtime requires exactly this schema and rejects missing, older, or newer versions with a rebuild instruction. Rebuild earlier IR from source. The independent report format remains 0.0.1 and its checksum verification is unchanged.
+Schema 0.0.2 added expression types and removed source spans from emitted declarations. Schema 0.0.3 tightens execution semantics: selections are consumed on commit, and branches execute exactly one simulation. The runtime requires exactly 0.0.3 and rejects missing, older, or newer versions with a rebuild instruction. Rebuild earlier IR from source. The report format remains 0.0.1, with additive branch status fields; checksum verification is unchanged.
 
-Schema versions must change when IR shape or interpretation changes. The new program digest changes commit intent identity relative to 0.0.1. Do not use a rebuilt artifact as a transparent retry of an older interrupted commit; reconcile the old target receipt first. Automatic migration and cross-version recovery are not yet implemented.
+Schema versions must change when IR shape or interpretation changes. The new program digest changes commit intent identity relative to earlier versions. Do not use a rebuilt artifact as a transparent retry of an older interrupted commit; inspect the old target receipt first. Automatic migration and cross-version recovery are not yet implemented.

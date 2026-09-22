@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +17,22 @@ CATALOG_METHODS = {
 
 
 def snapshot_json(snapshot: Snapshot) -> dict[str, Any]:
-    return {"revision": snapshot.revision, "rows": list(snapshot.rows), "digest": snapshot.digest}
+    return {"revision": snapshot.revision, "rows": [dict(row) for row in snapshot.rows], "digest": snapshot.digest}
+
+
+class DecisionStop(Exception):
+    def __init__(self, status, detail):
+        self.outcome = {"status": status, "detail": detail}
+
+
+class Selected:
+    """Opaque identity. Only the issuing runtime owns the commit payload."""
+    __slots__ = ()
+
+
+class TrialSet:
+    """Opaque identity for a completed exploration."""
+    __slots__ = ()
 
 
 def snapshot_from_json(value: dict[str, Any]) -> Snapshot:
@@ -25,13 +41,15 @@ def snapshot_from_json(value: dict[str, Any]) -> Snapshot:
 
 class Runtime:
     def __init__(self, ir: dict[str, Any], catalog: Catalog, simulate_stale: bool = False):
-        if ir.get("schema_version") != "0.0.2":
+        if ir.get("schema_version") != "0.0.3":
             raise RuntimeError("unsupported IR schema; rebuild source with the current compiler")
         self.ir = ir
         self.catalog = catalog
         self.simulate_stale = simulate_stale
         self.exploration: list[dict[str, Any]] = []
         self.selection: dict[str, Any] | None = None
+        self._selections: dict[Selected, tuple[str, dict]] = {}
+        self._trials: dict[TrialSet, list] = {}
 
     def run(self) -> dict[str, Any]:
         if len(self.ir["decisions"]) != 1:
@@ -40,7 +58,11 @@ class Runtime:
         env: dict[str, Any] = {}
         outcome: dict[str, Any] | None = None
         for statement in decision["body"]:
-            value = self.exec_statement(statement, env, branch=False)
+            try:
+                value = self.exec_statement(statement, env, branch=False)
+            except DecisionStop as stop:
+                outcome = stop.outcome
+                break
             if statement["statement"] == "return":
                 outcome = value
                 break
@@ -102,6 +124,9 @@ class Runtime:
             if not branch or expr["method"] != "apply":
                 raise RuntimeError("simulate requires explore and the apply method")
             args = [self.eval_expr(arg, env, branch) for arg in expr["args"]]
+            env["__simulations__"] = env.get("__simulations__", 0) + 1
+            if env["__simulations__"] != 1:
+                raise RuntimeError("only one simulation is permitted per branch")
             return Catalog.apply_to_snapshot(env.get("__base__"), args[0])
         if op == "call":
             name = expr["method"]
@@ -112,19 +137,26 @@ class Runtime:
                 raise RuntimeError("invalid resource method arguments")
             return CATALOG_METHODS[name](*args)
         if op == "explore":
-            plans = self.eval_expr(expr["plans"], env, branch)
+            plans = deepcopy(self.eval_expr(expr["plans"], env, branch))
             base = self.eval_expr(expr["base"], env, branch)
+            if not isinstance(plans, list) or any(not isinstance(p, dict) or not isinstance(p.get("id"), str) or not isinstance(p.get("patches"), list) for p in plans):
+                raise DecisionStop("invalid_plans", "candidate set has invalid structure")
+            if len({p["id"] for p in plans}) != len(plans):
+                raise DecisionStop("invalid_plans", "candidate IDs must be unique")
             trials: list[dict[str, Any]] = []
             for plan in plans:
-                local = dict(env)
-                local[expr["item"]] = plan
+                local = deepcopy(env)
+                local[expr["item"]] = deepcopy(plan)
                 local["__base__"] = base
                 local["__checks__"] = []
                 local["__metrics__"] = {}
+                local["__simulations__"] = 0
                 error = None
                 try:
                     for statement in expr["body"]:
                         self.exec_statement(statement, local, branch=True)
+                    if local["__simulations__"] != 1:
+                        raise RuntimeError("branch must execute one simulation")
                 except Exception as exc:
                     error = str(exc)
                 trial = {
@@ -133,6 +165,7 @@ class Runtime:
                     "metrics": local["__metrics__"],
                     "eligible": error is None and all(item["passed"] for item in local["__checks__"]),
                     "error": error,
+                    "status": "evaluation_failed" if error else ("eligible" if all(c["passed"] for c in local["__checks__"]) else "rejected"),
                     "base": snapshot_json(base),
                 }
                 trials.append(trial)
@@ -143,25 +176,39 @@ class Runtime:
                     "checks": trial["checks"],
                     "metrics": trial["metrics"],
                     "error": trial["error"],
+                    "status": trial["status"],
                 }
                 for trial in trials
             ]
-            return trials
+            token = TrialSet()
+            self._trials[token] = trials
+            return token
         if op == "select":
-            trials = self.eval_expr(expr["trials"], env, branch)
+            token = self.eval_expr(expr["trials"], env, branch)
+            if type(token) is not TrialSet or token not in self._trials:
+                raise RuntimeError("selection requires a completed exploration from this runtime")
+            trials = self._trials[token]
             eligible = [trial for trial in trials if trial["eligible"]]
             if not eligible:
-                raise RuntimeError("no eligible candidate")
+                raise DecisionStop("no_eligible_candidate", "complete exploration produced no eligible candidate")
             chosen = min(eligible, key=lambda item: (item["metrics"][expr["metric"]], item["plan"]["id"]))
             selection = {"plan": chosen["plan"], "base": chosen["base"], "metric": expr["metric"], "score": chosen["metrics"][expr["metric"]]}
             self.selection = {"plan_id": chosen["plan"]["id"], "metric": expr["metric"], "score": selection["score"]}
-            return selection
+            capability = Selected()
+            self._selections[capability] = (self.ir["resources"][0]["name"], deepcopy(selection))
+            return capability
         if op == "commit":
             selected = self.eval_expr(expr["selected"], env, branch)
+            if type(selected) is not Selected or selected not in self._selections:
+                raise RuntimeError("selection is forged, foreign, or already consumed")
+            resource, payload = self._selections[selected]
+            if resource != expr["resource"]:
+                raise RuntimeError("selection belongs to a different resource")
+            del self._selections[selected]
             if self.simulate_stale:
                 self.catalog.mutate_for_stale_test()
                 self.simulate_stale = False
-            return self.catalog.commit(selected, self.ir["program_digest"])
+            return self.catalog.commit(payload, self.ir["program_digest"])
         raise RuntimeError(f"unknown expression {op}")
 
 

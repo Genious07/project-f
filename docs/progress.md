@@ -1,5 +1,20 @@
 # Development progress
 
+## Day 3: selection ownership and isolated branches
+
+Implemented on 22 September 2026.
+
+- Enforced selection consumption through aliases at compile time and issued opaque runtime tokens with copied payloads.
+- Rejected forged, foreign, and consumed selection tokens before adapter invocation; consumption persists if the adapter raises.
+- Enforced exactly one simulation per branch, read-only scalar snapshot rows, and independently copied candidate/branch inputs.
+- Issued completed exploration tokens, enforced unique candidate IDs, and preserved deterministic tie breaking.
+- Added structured rejected/evaluation-failed candidate statuses and no-winner/invalid-plan-set outcomes with no writes.
+- Bumped IR semantics to 0.0.3 and documented ownership, low-level adapter trust, and version compatibility.
+
+Validation: all 33 tests pass. Eleven new tests cover compiler alias reuse, legal single consumption, simulation counts, runtime forgery/reuse/foreign tokens, adapter exceptions, forged trials, snapshot mutation, branch isolation, order-independent ties, no-winner failures, and duplicate IDs. Existing commit, stale-state, type, and report verification tests remain green.
+
+Next: Day 4 consistent snapshot reads, receipt lookup within the write transaction, strict commit-boundary patch checks, and concurrent retry tests. Reconciliation and semantic replay remain later work.
+
 ## Day 2: typed IR and static snapshot identity
 
 Implemented on 21 September 2026.

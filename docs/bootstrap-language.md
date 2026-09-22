@@ -10,7 +10,7 @@ This prototype tests one claim: an AI-assisted decision should be expressed as a
 4. `check` records a mandatory condition for candidate eligibility.
 5. `measure` records an integer objective.
 6. `select` chooses from the complete eligible set with deterministic tie breaking.
-7. `commit` accepts the selected result and opens one target transaction. Single-use capability enforcement is planned for Day 3.
+7. `commit` consumes a runtime-issued selection and opens one target transaction. See [selection ownership](selection-ownership.md) for alias and retry semantics.
 
 The compiler records used effects and rejects any effect absent from the decision declaration. `simulate`, `check`, and `measure` are restricted to exploration. A live `commit` inside exploration produces diagnostic `F3102`.
 
@@ -22,7 +22,7 @@ The shared `foresee/signatures.py` registry defines effects and method signature
 
 Checks require Boolean results. Metrics require integer expressions and the `Int` annotation. Duplicate metric names are rejected. Exploration cannot snapshot live state, call a proposal provider, nest exploration, select, commit, or return. Names beginning with `__` are reserved for interpreter state; resource and model names cannot be shadowed by local bindings. Unsupported forms produce compile diagnostics before the CLI opens a database.
 
-Runtime dispatch uses an explicit method table and rejects branch effects independently. This is defense in depth for compiler-produced IR, not a sandbox for hostile Python callers or arbitrary edited IR. Day 2 statically tracks resource and snapshot lineage. Runtime capability enforcement and affine selection types remain future milestones.
+Runtime dispatch uses an explicit method table and rejects branch effects independently. This is defense in depth for compiler-produced IR, not a sandbox for hostile Python callers or arbitrary edited IR. Day 2 statically tracks resource and snapshot lineage. Day 3 adds affine selections, runtime-issued tokens, read-only snapshots, isolated branch inputs, and exactly one simulation per branch.
 
 ## Bootstrap grammar
 

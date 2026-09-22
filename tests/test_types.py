@@ -79,7 +79,7 @@ class TypeTests(unittest.TestCase):
         self.reject(SOURCE.replace("return commit chosen to catalog", "return chosen"), "F3203")
 
     def test_runtime_requires_current_ir_schema(self):
-        for version in (None, "0.0.1", "0.0.3"):
+        for version in (None, "0.0.1", "0.0.2", "0.0.4"):
             with self.subTest(version=version), self.assertRaisesRegex(RuntimeError, "rebuild"):
                 Runtime({"schema_version": version}, None)
 

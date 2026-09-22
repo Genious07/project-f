@@ -44,6 +44,7 @@ class Checker:
         self.types: dict[int, Binding] = {}
         self.snapshot_count = 0
         self.branch_base: Binding | None = None
+        self.consumed_selections: set[int] = set()
 
     def error(self, code: str, message: str, span: Span, note: str | None = None) -> None:
         self.diagnostics.append(Diagnostic(code, message, span, note))
@@ -154,7 +155,10 @@ class Checker:
             if name not in env:
                 self.error("F3004", f"unknown binding {name!r}", expr.span)
                 return Binding("error")
-            return env[name]
+            result = env[name]
+            if result.kind == "selected" and id(result) in self.consumed_selections:
+                self.error("F3400", "selection has already been consumed", expr.span)
+            return result
         if kind == "snapshot":
             resource = expr.data["resource"]
             if resource not in self.resources:
@@ -176,6 +180,18 @@ class Checker:
             base = arg_types[0] if arg_types else Binding("error")
             return Binding("plans", base.resource, lineage=base.lineage)
         if kind == "explore":
+            def simulations(value):
+                if isinstance(value, Expr):
+                    return int(value.kind == "simulate") + simulations(value.data)
+                if isinstance(value, Statement):
+                    return simulations(value.data)
+                if isinstance(value, dict):
+                    return sum(simulations(v) for v in value.values())
+                if isinstance(value, (list, tuple)):
+                    return sum(simulations(v) for v in value)
+                return 0
+            if simulations(expr.data["body"]) != 1:
+                self.error("F3401", "explore requires exactly one simulation per branch", expr.span)
             plans = self.check_expr(expr.data["plans"], env, used, branch_resource)
             base = self.check_expr(expr.data["base"], env, used, branch_resource)
             resource = base.resource
@@ -238,6 +254,8 @@ class Checker:
             if branch_resource is not None:
                 self.error("F3102", "live commit is forbidden inside explore", expr.span)
             selected = self.check_expr(expr.data["selected"], env, used, branch_resource)
+            if selected.kind == "selected":
+                self.consumed_selections.add(id(selected))
             if selected.kind != "selected" or selected.resource != resource:
                 self.error("F3107", "commit requires Selected data for the same resource", expr.span)
             used.add(("Commit", resource))
@@ -252,7 +270,7 @@ def compile_source(source: str, source_name: str = "<memory>") -> dict[str, Any]
     checker = Checker(program)
     checker.check()
     ir: dict[str, Any] = {
-        "schema_version": "0.0.2",
+        "schema_version": "0.0.3",
         "resources": [{"name": item.name, "type_name": item.type_name} for item in program.resources],
         "models": [{"name": item.name, "type_name": item.type_name} for item in program.models],
         "decisions": [

@@ -1,5 +1,19 @@
 # Development progress
 
+## Day 4: SQLite transaction correctness
+
+Implemented on 23 September 2026.
+
+- Read snapshots in a consistent transaction while preserving caller-owned transactions.
+- Moved receipt lookup inside BEGIN IMMEDIATE so concurrent retries return the same terminal result.
+- Separated operation identity from intent, with explicit optional operation IDs and conflict rejection.
+- Validated patch shapes, scalar bounds, duplicate targets, row existence, and arithmetic before writes; checked resulting rows and revision before storing the applied receipt.
+- Documented adapter protocol 2, older receipt compatibility, and the supported writer model.
+
+Validation: all 42 tests pass. Nine new tests cover a four-connection retry race, conflicting intents, default identity independence, a deterministic WAL writer interleaved between snapshot reads, invalid patch cases, receipt-insert rollback, unexpected trigger effects, terminal stale retries, and preservation of caller transactions. Existing language/runtime tests remain green.
+
+Next: Day 5 durable run identities, crash injection, and receipt-based reconciliation. Receipt migration from earlier protocol versions is not automatic.
+
 ## Day 3: selection ownership and isolated branches
 
 Implemented on 22 September 2026.

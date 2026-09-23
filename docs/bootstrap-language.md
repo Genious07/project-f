@@ -54,17 +54,17 @@ annotation    = type [ "<" name ">" ] ;
 
 The SQLite adapter stores the domain rows, monotonic resource revision, and receipt ledger in the same database. A commit:
 
-1. derives an intent digest and stable commit ID from the program, snapshot, resource, and selected plan;
-2. returns an existing receipt when the same intent was already handled;
-3. opens `BEGIN IMMEDIATE` for a new intent;
+1. validates the copied plan and derives a stable operation identity separately from its intent digest;
+2. opens `BEGIN IMMEDIATE`;
+3. returns an existing receipt for the same operation and intent, or rejects a conflicting intent;
 4. compares the live snapshot digest with the selected snapshot;
 5. records a terminal `stale` receipt without applying patches when they differ;
-6. validates the patch field allowlist;
+6. validates row identity and arithmetic against live state;
 7. applies the derived-field patch, advances the revision, and stores the `applied` receipt in one transaction.
 
 The first domain permits writes only to `unit_price_cents`. Source fields remain immutable even if a proposed candidate tries to modify them.
 
-Receipt lookup currently precedes the transaction, so concurrent retry correctness is not established. Snapshot reads and commit-boundary arithmetic validation also need hardening. Day 4 addresses these limitations.
+Day 4 adds transactional receipt lookup, consistent snapshot reads, strict patch validation, and postcondition checks. See the [SQLite transaction contract](sqlite-transactions.md) for operation identity, compatibility with older receipts, and supported writer assumptions.
 
 ## Replay contract
 

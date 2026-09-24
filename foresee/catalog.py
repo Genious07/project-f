@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
+import uuid
 from copy import deepcopy
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +14,14 @@ from types import MappingProxyType
 def stable_digest(value: Any) -> str:
     encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(encoded).hexdigest()
+
+
+def commit_identity(selection, program_digest, operation_id=None):
+    intent = {"program_digest": program_digest, "resource": "catalog",
+              "snapshot_digest": selection["base"]["digest"], "plan": selection["plan"]}
+    identity = {"protocol": 2, "operation": operation_id} if operation_id is not None else {
+        "protocol": 2, "program": program_digest, "snapshot": selection["base"]["digest"], "resource": "catalog"}
+    return stable_digest(identity), stable_digest(intent)
 
 
 @dataclass(frozen=True)
@@ -66,10 +75,19 @@ class Catalog:
                 resulting_revision INTEGER,
                 detail TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS foresee_target (
+                singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+                target_id TEXT NOT NULL
+            );
             INSERT OR IGNORE INTO catalog_meta(singleton, revision) VALUES (1, 0);
             """
         )
+        self.connection.execute("INSERT OR IGNORE INTO foresee_target VALUES (1, ?)", (str(uuid.uuid4()),))
         self.connection.commit()
+
+    @property
+    def target_id(self):
+        return self.connection.execute("SELECT target_id FROM foresee_target WHERE singleton=1").fetchone()[0]
 
     def seed(self) -> None:
         count = self.connection.execute("SELECT COUNT(*) FROM catalog_rows").fetchone()[0]
@@ -141,7 +159,7 @@ class Catalog:
             self.connection.execute("UPDATE catalog_rows SET title = title || ' (updated)' WHERE id = 'mugs'")
             self.connection.execute("UPDATE catalog_meta SET revision = revision + 1 WHERE singleton = 1")
 
-    def commit(self, selection: dict[str, Any], program_digest: str, *, operation_id: str | None = None) -> dict[str, Any]:
+    def commit(self, selection: dict[str, Any], program_digest: str, *, operation_id: str | None = None, fault_hook=None) -> dict[str, Any]:
         if self.connection.in_transaction:
             raise RuntimeError("commit requires an idle connection")
         selection = deepcopy(selection)
@@ -154,22 +172,20 @@ class Catalog:
         if not isinstance(before.get("digest"), str) or not before["digest"]:
             raise ValueError("snapshot digest is required")
         self._validate_plan(plan)
-        intent = {
-            "program_digest": program_digest,
-            "resource": "catalog",
-            "snapshot_digest": before["digest"],
-            "plan": plan,
-        }
-        intent_digest = stable_digest(intent)
         if operation_id is not None and (not isinstance(operation_id, str) or not operation_id or len(operation_id) > 256):
             raise ValueError("operation ID must be a nonempty string of at most 256 characters")
         # Identity is independent of the proposed effect. Reusing an identity
         # with different intent is a conflict, never a new operation.
-        identity = {"protocol": 2, "operation": operation_id} if operation_id is not None else {
-            "protocol": 2, "program": program_digest, "snapshot": before["digest"], "resource": "catalog"}
-        commit_id = stable_digest(identity)
+        commit_id, intent_digest = commit_identity(selection, program_digest, operation_id)
+        hook = fault_hook or (lambda stage: None)
+
+        def finish():
+            hook("before_commit")
+            self.connection.commit()
+            hook("after_commit")
 
         try:
+            hook("before_transaction")
             self.connection.execute("BEGIN IMMEDIATE")
             existing = self.connection.execute(
                 "SELECT * FROM foresee_receipts WHERE commit_id = ?", (commit_id,)
@@ -177,7 +193,7 @@ class Catalog:
             if existing:
                 if existing["intent_digest"] != intent_digest:
                     raise RuntimeError("operation ID reused with different intent")
-                self.connection.commit()
+                finish()
                 return {"status": existing["status"], "commit_id": commit_id,
                         "revision": existing["resulting_revision"], "idempotent_replay": True,
                         "detail": existing["detail"]}
@@ -188,7 +204,7 @@ class Catalog:
                     "INSERT INTO foresee_receipts VALUES (?, ?, 'stale', ?, ?, ?)",
                     (commit_id, intent_digest, before["digest"], current.revision, detail),
                 )
-                self.connection.commit()
+                finish()
                 return {
                     "status": "stale",
                     "commit_id": commit_id,
@@ -217,7 +233,7 @@ class Catalog:
                 "INSERT INTO foresee_receipts VALUES (?, ?, 'applied', ?, ?, ?)",
                 (commit_id, intent_digest, before["digest"], next_revision, detail),
             )
-            self.connection.commit()
+            finish()
             return {
                 "status": "applied",
                 "commit_id": commit_id,

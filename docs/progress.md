@@ -1,5 +1,19 @@
 # Development progress
 
+## Day 5: durable intent and crash reconciliation
+
+Implemented on 24 September 2026.
+
+- Added a durable SQLite run journal with run IDs, per-operation IDs, selected payloads, target identity, and explicit states.
+- Persisted intent before invoking the target adapter and recorded terminal acknowledgements afterward.
+- Added `reconcile`, which reads target receipts through a read-only connection, validates identity and intent, and updates only the journal.
+- Added explicit process-termination fault points before the transaction, before commit, and after commit but before acknowledgement.
+- Preserved unresolved states for missing or inconsistent evidence; no automatic operation replay or full report reconstruction.
+
+Validation: all 53 tests pass. Eleven recovery tests cover subprocess crashes at all three boundaries, repeated reconciliation, stale receipt recovery, missing/replaced targets, inconsistent journal/receipt data, completed and started runs, missing journals, multiple operations, and completed no-winner runs. Existing language, ownership, transaction, and concurrency tests remain green.
+
+Next: Day 6 recorded execution evidence and deterministic offline re-evaluation. Current replay remains checksum verification only.
+
 ## Day 4: SQLite transaction correctness
 
 Implemented on 23 September 2026.

@@ -44,10 +44,18 @@ Verify a completed run without opening the database or invoking a model:
 python3 -m foresee replay build/demo/run-report.json
 ```
 
+Reconcile recorded operations after an interrupted demo:
+
+```bash
+python3 -m foresee reconcile build/demo/runs.db
+```
+
+See the [recovery guide](docs/recovery.md) for crash exercises, run states, and unresolved outcomes.
+
 The [bootstrap language contract](docs/bootstrap-language.md) describes the grammar, phase model, transaction protocol, replay evidence, and Rust production path. This is a bootstrap subset, not the complete language described in the design handbook.
 
 ## Current limits
 
-This is an early reference implementation for one SQLite catalog demo. It includes signature validation, explicit runtime dispatch, [typed IR](docs/typed-ir.md), static snapshot lineage, and formatting-independent program digests. Day 3 adds [single-use selections and isolated branches](docs/selection-ownership.md). Day 4 adds [transactional concurrent retries and patch validation](docs/sqlite-transactions.md). Crash recovery remains unfinished. The runtime is not a security sandbox. The replay command currently verifies a report checksum and displays recorded results; it does not independently re-execute the decision or authenticate the report's author. The development plan addresses these gaps before an alpha release.
+This is an early reference implementation for one SQLite catalog demo. It includes signature validation, explicit runtime dispatch, [typed IR](docs/typed-ir.md), static snapshot lineage, and formatting-independent program digests. Day 3 adds [single-use selections and isolated branches](docs/selection-ownership.md). Day 4 adds [transactional concurrent retries and patch validation](docs/sqlite-transactions.md). Day 5 adds durable intent journaling and receipt-based reconciliation; missing evidence remains unresolved rather than triggering a retry. The runtime is not a security sandbox. The replay command currently verifies a report checksum and displays recorded results; it does not independently re-execute the decision or authenticate the report's author. The development plan addresses these gaps before an alpha release.
 
 See the [development progress log](docs/progress.md) for completed milestones and validation evidence.

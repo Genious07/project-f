@@ -40,7 +40,7 @@ def snapshot_from_json(value: dict[str, Any]) -> Snapshot:
 
 
 class Runtime:
-    def __init__(self, ir: dict[str, Any], catalog: Catalog, simulate_stale: bool = False):
+    def __init__(self, ir: dict[str, Any], catalog: Catalog, simulate_stale: bool = False, *, journal=None, fault_hook=None):
         if ir.get("schema_version") != "0.0.3":
             raise RuntimeError("unsupported IR schema; rebuild source with the current compiler")
         self.ir = ir
@@ -50,8 +50,17 @@ class Runtime:
         self.selection: dict[str, Any] | None = None
         self._selections: dict[Selected, tuple[str, dict]] = {}
         self._trials: dict[TrialSet, list] = {}
+        self.journal = journal
+        self.run_id = None
+        self.fault_hook = fault_hook
+        self._ran = False
 
     def run(self) -> dict[str, Any]:
+        if self._ran:
+            raise RuntimeError("create a new runtime for each run")
+        self._ran = True
+        if self.journal:
+            self.run_id = self.journal.start()
         if len(self.ir["decisions"]) != 1:
             raise RuntimeError("runtime requires exactly one decision")
         decision = self.ir["decisions"][0]
@@ -74,6 +83,10 @@ class Runtime:
             "selection": self.selection,
             "outcome": outcome,
         }
+        if self.journal:
+            self.journal.complete(self.run_id, outcome)
+            report["run_id"] = self.run_id
+            report["journal"] = str(self.journal.path)
         report["report_digest"] = stable_digest(report)
         return report
 
@@ -205,10 +218,18 @@ class Runtime:
             if resource != expr["resource"]:
                 raise RuntimeError("selection belongs to a different resource")
             del self._selections[selected]
+            operation_id = None
+            if self.journal:
+                if self.run_id is None:
+                    raise RuntimeError("journaled operations require run()")
+                operation_id = self.journal.prepare(self.run_id, self.catalog, self.ir["program_digest"], payload)
             if self.simulate_stale:
                 self.catalog.mutate_for_stale_test()
                 self.simulate_stale = False
-            return self.catalog.commit(payload, self.ir["program_digest"])
+            outcome = self.catalog.commit(payload, self.ir["program_digest"], operation_id=operation_id, fault_hook=self.fault_hook)
+            if self.journal:
+                self.journal.record(operation_id, outcome)
+            return outcome
         raise RuntimeError(f"unknown expression {op}")
 
 

@@ -6,7 +6,7 @@ A selection is affine: it may be used for at most one commit. Assigning it to an
 
 The runtime returns an opaque `Selected` identity. Its internal registry owns a copied plan and snapshot payload and the nominal target resource. Commit requires an issued, unconsumed identity from the same runtime with the matching target. Ordinary dictionaries, manually constructed tokens, tokens from another runtime, and consumed tokens fail before adapter invocation.
 
-Consumption happens before calling the adapter, including when the adapter raises. A receipt retry is separate from reuse of a language selection. Durable recovery and reconciliation are Day 5 work. The low-level Catalog adapter remains a trusted internal API that accepts validated commit payloads; it does not itself authenticate language tokens. Python reflection or direct access to private registries is outside this trust model.
+Consumption happens before calling the adapter, including when the adapter raises. A receipt retry is separate from reuse of a language selection. Day 5 adds [durable intent and reconciliation](recovery.md). The low-level Catalog adapter remains a trusted internal API that accepts validated commit payloads; it does not itself authenticate language tokens. Python reflection or direct access to private registries is outside this trust model.
 
 ## Exploration isolation
 
@@ -22,4 +22,4 @@ Each evaluated candidate records one of `eligible`, `rejected` (a failed check),
 
 If no candidate is eligible, the run ends with `no_eligible_candidate` and performs no commit. A structurally invalid candidate set or duplicate IDs ends with `invalid_plans`. These are decision outcomes, not successful writes. The CLI's zero exit code means a report was produced; automation must inspect `outcome.status` for the decision result. Fatal compiler/runtime errors still return a nonzero exit code.
 
-This milestone does not provide a sandbox, crash recovery, or semantic offline replay. Day 4 adds concurrent receipt handling under the [SQLite transaction contract](sqlite-transactions.md).
+This milestone does not provide a sandbox or semantic offline replay. Day 4 adds concurrent receipt handling under the [SQLite transaction contract](sqlite-transactions.md), and Day 5 adds receipt-based crash reconciliation.

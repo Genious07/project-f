@@ -22,4 +22,4 @@ Each evaluated candidate records one of `eligible`, `rejected` (a failed check),
 
 If no candidate is eligible, the run ends with `no_eligible_candidate` and performs no commit. A structurally invalid candidate set or duplicate IDs ends with `invalid_plans`. These are decision outcomes, not successful writes. The CLI's zero exit code means a report was produced; automation must inspect `outcome.status` for the decision result. Fatal compiler/runtime errors still return a nonzero exit code.
 
-This milestone does not provide a sandbox or semantic offline replay. Day 4 adds concurrent receipt handling under the [SQLite transaction contract](sqlite-transactions.md), and Day 5 adds receipt-based crash reconciliation.
+This milestone does not provide a sandbox. Day 4 adds concurrent receipt handling under the [SQLite transaction contract](sqlite-transactions.md), Day 5 adds receipt-based crash reconciliation, and Day 6 adds [offline decision reproduction](offline-replay.md).

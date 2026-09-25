@@ -36,6 +36,6 @@ This is a structural semantic identity, not an equivalence proof. Renaming bindi
 
 ## Version policy
 
-Schema 0.0.2 added expression types and removed source spans from emitted declarations. Schema 0.0.3 tightens execution semantics: selections are consumed on commit, and branches execute exactly one simulation. The runtime requires exactly 0.0.3 and rejects missing, older, or newer versions with a rebuild instruction. Rebuild earlier IR from source. The report format remains 0.0.1, with additive branch status fields; checksum verification is unchanged.
+Schema 0.0.2 added expression types and removed source spans from emitted declarations. Schema 0.0.3 tightens execution semantics: selections are consumed on commit, and branches execute exactly one simulation. The runtime requires exactly 0.0.3 and rejects missing, older, or newer versions with a rebuild instruction. Rebuild earlier IR from source. Day 6 introduces independent report format 0.0.2 with reproducible execution evidence; old report 0.0.1 remains checksum-only.
 
 Schema versions must change when IR shape or interpretation changes. The new program digest changes commit intent identity relative to earlier versions. Do not use a rebuilt artifact as a transparent retry of an older interrupted commit; inspect the old target receipt first. Automatic migration and cross-version recovery are not yet implemented.

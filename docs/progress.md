@@ -1,5 +1,19 @@
 # Development progress
 
+## Day 6: reproducible offline evidence
+
+Implemented on 25 September 2026.
+
+- Added report 0.0.2 / evidence 1 with checked IR, recorded snapshots and proposals, all exploration/selection events, and commit payloads and receipt references.
+- Added a pure offline interpreter that recompiles recorded IR and recomputes checks, metrics, eligibility, and selection without opening a database or invoking a provider.
+- Compared ordered evidence and final summaries; rejected inconsistent values even after checksum recomputation.
+- Distinguished checksum validity, decision reproduction, unauthenticated origin, and unverified target effects. Legacy reports explicitly remain checksum-only.
+- Documented redaction, retention, compatibility, and replay's trust limits.
+
+Validation: all 63 tests pass. Ten new tests cover disabled live access, edited metrics/checks/winners with recomputed checksums, incomplete/reordered/trailing events, program and type mismatches, snapshot/receipt consistency, redacted evidence, legacy reports, and reproduction of no-winner, stale, and multiple-operation runs. Earlier compiler, transaction, and subprocess recovery coverage remains green.
+
+Next: Day 7 provider interfaces, project initialization, configuration, and running on user-prepared data with a usable CLI.
+
 ## Day 5: durable intent and crash reconciliation
 
 Implemented on 24 September 2026.

@@ -68,9 +68,7 @@ Day 4 adds transactional receipt lookup, consistent snapshot reads, strict patch
 
 ## Replay contract
 
-Each run report contains the program digest, all candidate check results and metrics, the selected plan ID, commit outcome, and a digest over the report. Replay verifies this evidence from a file. It opens no target database and makes no model call.
-
-Currently, verification checks only the report checksum and displays recorded results. It does not reproduce the decision or authenticate the author. A modified report with a recomputed checksum can pass. Reproducible offline evidence is planned for Day 6.
+Report 0.0.2 records checked IR, snapshot and proposal inputs, exploration and selection events, commit references, and a checksum. Day 6 replay recompiles the IR and reproduces checks, metrics, and selection from recorded inputs. It opens no target database and makes no model call. Legacy report 0.0.1 only receives checksum verification. Replay does not authenticate the author or verify live effects; see the [offline replay contract](offline-replay.md).
 
 ## Production path
 

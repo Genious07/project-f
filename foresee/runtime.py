@@ -54,6 +54,31 @@ class Runtime:
         self.run_id = None
         self.fault_hook = fault_hook
         self._ran = False
+        self.events = []
+
+    def observe(self, kind, data):
+        self.events.append({"kind": kind, "data": deepcopy(data)})
+
+    def read_snapshot(self, resource):
+        return self.catalog.snapshot()
+
+    def propose_plans(self, model, base, prompt, limit):
+        return fixture_plans(base, limit)
+
+    def apply_selection(self, payload):
+        operation_id = None
+        if self.journal:
+            if self.run_id is None:
+                raise RuntimeError("journaled operations require run()")
+            operation_id = self.journal.prepare(self.run_id, self.catalog, self.ir["program_digest"], payload)
+        if self.simulate_stale:
+            self.catalog.mutate_for_stale_test()
+            self.simulate_stale = False
+        outcome = self.catalog.commit(payload, self.ir["program_digest"], operation_id=operation_id, fault_hook=self.fault_hook)
+        if self.journal:
+            self.journal.record(operation_id, outcome)
+        self.observe("commit", {"payload": payload, "operation_id": operation_id, "outcome": outcome})
+        return outcome
 
     def run(self) -> dict[str, Any]:
         if self._ran:
@@ -76,12 +101,13 @@ class Runtime:
                 outcome = value
                 break
         report = {
-            "report_version": "0.0.1",
+            "report_version": "0.0.2",
             "program_digest": self.ir["program_digest"],
             "decision": decision["name"],
             "exploration": self.exploration,
             "selection": self.selection,
             "outcome": outcome,
+            "evidence": {"version": 1, "ir": deepcopy(self.ir), "events": deepcopy(self.events)},
         }
         if self.journal:
             self.journal.complete(self.run_id, outcome)
@@ -125,14 +151,19 @@ class Runtime:
         if op == "var":
             return env[expr["name"]]
         if op == "snapshot":
-            return self.catalog.snapshot()
+            base = self.read_snapshot(expr["resource"])
+            self.observe("snapshot", {"resource": expr["resource"], "snapshot": snapshot_json(base)})
+            return base
         if op == "propose":
             args = [self.eval_expr(arg, env, branch) for arg in expr["args"]]
             if len(args) != 3 or not isinstance(args[0], Snapshot) or not isinstance(args[1], str) or type(args[2]) is not int or not 1 <= args[2] <= 4:
                 raise RuntimeError("invalid fixture proposal arguments")
             base = args[0]
             limit = args[2]
-            return fixture_plans(base, limit)
+            plans = self.propose_plans(expr["model"], base, args[1], limit)
+            self.observe("proposal", {"model": expr["model"], "snapshot_digest": base.digest,
+                                      "prompt": args[1], "limit": limit, "plans": plans})
+            return plans
         if op == "simulate":
             if not branch or expr["method"] != "apply":
                 raise RuntimeError("simulate requires explore and the apply method")
@@ -194,6 +225,7 @@ class Runtime:
                 for trial in trials
             ]
             token = TrialSet()
+            self.observe("exploration", self.exploration)
             self._trials[token] = trials
             return token
         if op == "select":
@@ -208,6 +240,7 @@ class Runtime:
             selection = {"plan": chosen["plan"], "base": chosen["base"], "metric": expr["metric"], "score": chosen["metrics"][expr["metric"]]}
             self.selection = {"plan_id": chosen["plan"]["id"], "metric": expr["metric"], "score": selection["score"]}
             capability = Selected()
+            self.observe("selection", self.selection)
             self._selections[capability] = (self.ir["resources"][0]["name"], deepcopy(selection))
             return capability
         if op == "commit":
@@ -218,18 +251,7 @@ class Runtime:
             if resource != expr["resource"]:
                 raise RuntimeError("selection belongs to a different resource")
             del self._selections[selected]
-            operation_id = None
-            if self.journal:
-                if self.run_id is None:
-                    raise RuntimeError("journaled operations require run()")
-                operation_id = self.journal.prepare(self.run_id, self.catalog, self.ir["program_digest"], payload)
-            if self.simulate_stale:
-                self.catalog.mutate_for_stale_test()
-                self.simulate_stale = False
-            outcome = self.catalog.commit(payload, self.ir["program_digest"], operation_id=operation_id, fault_hook=self.fault_hook)
-            if self.journal:
-                self.journal.record(operation_id, outcome)
-            return outcome
+            return self.apply_selection(payload)
         raise RuntimeError(f"unknown expression {op}")
 
 
@@ -239,13 +261,19 @@ def save_report(report: dict[str, Any], path: Path) -> None:
 
 
 def replay_report(path: Path) -> dict[str, Any]:
+    from .replay import reproduce
     report = json.loads(path.read_text())
     claimed = report.pop("report_digest", None)
     actual = stable_digest(report)
     if claimed != actual:
         raise ValueError("report digest mismatch")
+    reproduced = reproduce(report)
     return {
         "verified": True,
+        "checksum_valid": True,
+        "decision_reproduced": reproduced,
+        "origin_authenticated": False,
+        "target_effect_verified": False,
         "report_digest": claimed,
         "program_digest": report["program_digest"],
         "decision": report["decision"],

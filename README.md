@@ -38,7 +38,7 @@ Build inspectable IR:
 python3 -m foresee build examples/repair.fore -o build/repair.fir.json
 ```
 
-Verify a completed run without opening the database or invoking a model:
+Reproduce a completed decision offline without opening the database or invoking a model:
 
 ```bash
 python3 -m foresee replay build/demo/run-report.json
@@ -56,6 +56,6 @@ The [bootstrap language contract](docs/bootstrap-language.md) describes the gram
 
 ## Current limits
 
-This is an early reference implementation for one SQLite catalog demo. It includes signature validation, explicit runtime dispatch, [typed IR](docs/typed-ir.md), static snapshot lineage, and formatting-independent program digests. Day 3 adds [single-use selections and isolated branches](docs/selection-ownership.md). Day 4 adds [transactional concurrent retries and patch validation](docs/sqlite-transactions.md). Day 5 adds durable intent journaling and receipt-based reconciliation; missing evidence remains unresolved rather than triggering a retry. The runtime is not a security sandbox. The replay command currently verifies a report checksum and displays recorded results; it does not independently re-execute the decision or authenticate the report's author. The development plan addresses these gaps before an alpha release.
+This is an early reference implementation for one SQLite catalog demo. It includes signature validation, explicit runtime dispatch, [typed IR](docs/typed-ir.md), static snapshot lineage, and formatting-independent program digests. It supports [single-use selections and isolated branches](docs/selection-ownership.md), [transactional concurrent retries](docs/sqlite-transactions.md), durable intent journaling, and receipt-based reconciliation. Day 6 adds [reproducible offline decisions](docs/offline-replay.md). Missing evidence remains unresolved rather than triggering a retry. The runtime is not a security sandbox, and offline replay does not authenticate report origin or prove live effects.
 
 See the [development progress log](docs/progress.md) for completed milestones and validation evidence.

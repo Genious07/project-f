@@ -12,6 +12,7 @@ from .compiler import compile_source
 from .model import CompileFailure
 from .runtime import Runtime, replay_report, save_report
 from .journal import Journal, reconcile
+from .project import init_project, run_project, inspect_report
 
 
 def load_ir(source_path: Path) -> dict:
@@ -21,6 +22,14 @@ def load_ir(source_path: Path) -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="foresee", description="Bootstrap compiler for auditable decisions")
     sub = parser.add_subparsers(dest="command", required=True)
+    init = sub.add_parser("init", help="initialize a new project with an empty prepared catalog")
+    init.add_argument("directory", type=Path)
+    init.add_argument("--demo-data", action="store_true", help="explicitly seed example catalog and candidates")
+    run = sub.add_parser("run", help="run against the configured existing catalog, without seeding")
+    run.add_argument("--project", type=Path, default=Path("foresee.json"))
+    run.add_argument("--entry")
+    inspect = sub.add_parser("inspect", help="display recorded checks, metrics, and outcome")
+    inspect.add_argument("report", type=Path)
     check = sub.add_parser("check", help="parse and statically check a source file")
     check.add_argument("source", type=Path)
     build = sub.add_parser("build", help="emit canonical JSON IR")
@@ -40,6 +49,16 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
+        if args.command == "init":
+            print(init_project(args.directory, args.demo_data))
+            return 0
+        if args.command == "run":
+            result = run_project(args.project, args.entry)
+            print(json.dumps(result, indent=2))
+            return 0 if result["outcome"]["status"] == "applied" else 2
+        if args.command == "inspect":
+            print(json.dumps(inspect_report(args.report), indent=2))
+            return 0
         if args.command == "reconcile":
             result = reconcile(args.journal, args.run_id)
             print(json.dumps(result, indent=2, sort_keys=True))

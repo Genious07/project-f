@@ -42,13 +42,29 @@ class Snapshot:
 
 
 class Catalog:
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, *, existing=False):
         self.path = path
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.connection = sqlite3.connect(path)
+        if existing:
+            self.connection = sqlite3.connect(path.resolve().as_uri() + "?mode=rw", uri=True)
+        else:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self.connection = sqlite3.connect(path)
         self.connection.row_factory = sqlite3.Row
         self.connection.execute("PRAGMA foreign_keys = ON")
-        self._create_schema()
+        if existing:
+            try:
+                meta = self.connection.execute("SELECT revision FROM catalog_meta WHERE singleton=1").fetchone()
+                if meta is None or type(meta[0]) is not int or meta[0] < 0:
+                    raise ValueError("catalog revision is missing or invalid")
+                self.connection.execute("SELECT id, title, pack_price_cents, units_per_pack, unit_price_cents FROM catalog_rows LIMIT 0")
+                self.connection.execute("SELECT commit_id, intent_digest, status, snapshot_digest, resulting_revision, detail FROM foresee_receipts LIMIT 0")
+                if not self.target_id:
+                    raise ValueError("target identity is missing")
+            except Exception:
+                self.connection.close()
+                raise
+        else:
+            self._create_schema()
 
     def close(self) -> None:
         self.connection.close()
@@ -87,7 +103,10 @@ class Catalog:
 
     @property
     def target_id(self):
-        return self.connection.execute("SELECT target_id FROM foresee_target WHERE singleton=1").fetchone()[0]
+        row = self.connection.execute("SELECT target_id FROM foresee_target WHERE singleton=1").fetchone()
+        if row is None or not isinstance(row[0], str) or not row[0]:
+            raise ValueError("target identity is missing or invalid")
+        return row[0]
 
     def seed(self) -> None:
         count = self.connection.execute("SELECT COUNT(*) FROM catalog_rows").fetchone()[0]

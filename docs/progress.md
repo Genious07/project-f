@@ -1,5 +1,19 @@
 # Development progress
 
+## Day 7: projects, provider contracts, and user data
+
+Implemented on 27 September 2026.
+
+- Added model/resource/journal/clock protocols and injectable providers. Project runs use supplied JSON candidates; fixture proposals remain the default for the demo.
+- Added `init`, strict JSON configuration, entry selection, `run`, and `inspect`. Initialization seeds example rows only with `--demo-data`.
+- Added existing-only catalog opening so ordinary runs do not create, migrate, or seed user targets.
+- Validated candidate structure before opening the target and bounded candidates, patch counts, source/configuration sizes, and execution evidence.
+- Normalized provider failures and ambiguous commit failures into explicit outcomes, and rejected semantic replay for incomplete evidence.
+
+Validation: all 73 tests pass. Ten new tests cover the complete CLI workflow from a fresh project directory, empty targets without seeding, missing/unprepared targets, malformed fixtures before database access, invalid entry/configuration, overwrite refusal, custom rows and candidates without source edits, provider/clock injection, and evidence exhaustion before writes. Prior replay, crash, concurrency, and compiler coverage remains green.
+
+Next: Day 8 Rust frontend and shared conformance fixtures. Installable artifact and container verification remain Day 9 work.
+
 ## Day 6: reproducible offline evidence
 
 Implemented on 25 September 2026.

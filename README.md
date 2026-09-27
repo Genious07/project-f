@@ -4,6 +4,8 @@ An experimental decision language for AI systems that propose alternatives, test
 
 Start with the [ten-day development plan](docs/development-plan.md) for daily implementation work, acceptance checks, and release scope.
 
+To run on your own prepared catalog, follow the [project workflow](docs/projects.md). It covers `init`, configuration, candidate fixtures, `run`, `inspect`, and offline verification.
+
 ## Bootstrap prototype
 
 The current prototype is a Python standard-library reference implementation. It validates the first language slice before a production Rust port:

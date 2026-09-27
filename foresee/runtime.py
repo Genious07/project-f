@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
 from .catalog import Catalog, Snapshot, fixture_plans, stable_digest
 from .signatures import BRANCH_FORBIDDEN, METHODS
+from .providers import SystemClock, FixtureProvider, ResourceProvider, ModelProvider, JournalProvider, ClockProvider
 
 
 CATALOG_METHODS = {
@@ -40,7 +42,7 @@ def snapshot_from_json(value: dict[str, Any]) -> Snapshot:
 
 
 class Runtime:
-    def __init__(self, ir: dict[str, Any], catalog: Catalog, simulate_stale: bool = False, *, journal=None, fault_hook=None):
+    def __init__(self, ir: dict[str, Any], catalog: ResourceProvider, simulate_stale: bool = False, *, journal: JournalProvider | None = None, fault_hook=None, model_provider: ModelProvider | None = None, clock: ClockProvider | None = None, max_evidence_bytes=None):
         if ir.get("schema_version") != "0.0.3":
             raise RuntimeError("unsupported IR schema; rebuild source with the current compiler")
         self.ir = ir
@@ -55,17 +57,34 @@ class Runtime:
         self.fault_hook = fault_hook
         self._ran = False
         self.events = []
+        self.model_provider = model_provider or FixtureProvider(lambda base, limit: fixture_plans(base, limit))
+        self.clock = clock or SystemClock()
+        self.max_evidence_bytes = max_evidence_bytes
+
+    def reserve_evidence(self, kind, data, reserve=0):
+        if self.max_evidence_bytes is not None:
+            size = len(json.dumps({"ir": self.ir, "events": self.events + [{"kind": kind, "data": data}]}, ensure_ascii=True, indent=2).encode())
+            if size + reserve > self.max_evidence_bytes:
+                raise DecisionStop("evidence_limit", "execution evidence exceeds configured byte limit")
 
     def observe(self, kind, data):
+        self.reserve_evidence(kind, data)
         self.events.append({"kind": kind, "data": deepcopy(data)})
 
     def read_snapshot(self, resource):
-        return self.catalog.snapshot()
+        try:
+            return self.catalog.snapshot()
+        except (OSError, ValueError, RuntimeError, sqlite3.Error) as error:
+            raise DecisionStop("provider_error", str(error)) from error
 
     def propose_plans(self, model, base, prompt, limit):
-        return fixture_plans(base, limit)
+        try:
+            return self.model_provider.propose(base, prompt, limit)
+        except (OSError, ValueError, RuntimeError) as error:
+            raise DecisionStop("provider_error", str(error)) from error
 
     def apply_selection(self, payload):
+        self.reserve_evidence("commit", {"payload": payload}, reserve=4096)
         operation_id = None
         if self.journal:
             if self.run_id is None:
@@ -74,7 +93,12 @@ class Runtime:
         if self.simulate_stale:
             self.catalog.mutate_for_stale_test()
             self.simulate_stale = False
-        outcome = self.catalog.commit(payload, self.ir["program_digest"], operation_id=operation_id, fault_hook=self.fault_hook)
+        try:
+            outcome = self.catalog.commit(payload, self.ir["program_digest"], operation_id=operation_id, fault_hook=self.fault_hook)
+        except (OSError, ValueError, RuntimeError, sqlite3.Error) as error:
+            if self.journal is None:
+                raise
+            raise DecisionStop("commit_unresolved", "adapter failed; reconcile recorded intent: " + str(error)) from error
         if self.journal:
             self.journal.record(operation_id, outcome)
         self.observe("commit", {"payload": payload, "operation_id": operation_id, "outcome": outcome})
@@ -109,8 +133,11 @@ class Runtime:
             "outcome": outcome,
             "evidence": {"version": 1, "ir": deepcopy(self.ir), "events": deepcopy(self.events)},
         }
+        report["recorded_at"] = self.clock.now()
+        report["evidence"]["complete"] = not outcome or outcome.get("status") not in {"provider_error", "evidence_limit", "commit_unresolved"}
         if self.journal:
-            self.journal.complete(self.run_id, outcome)
+            if not outcome or outcome.get("status") != "commit_unresolved":
+                self.journal.complete(self.run_id, outcome)
             report["run_id"] = self.run_id
             report["journal"] = str(self.journal.path)
         report["report_digest"] = stable_digest(report)

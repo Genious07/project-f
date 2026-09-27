@@ -6,6 +6,7 @@ from .catalog import commit_identity, stable_digest
 from .compiler import compile_source
 from .model import CompileFailure
 from .runtime import Runtime, snapshot_from_json
+from .providers import FixedClock
 
 
 def source_from_ir(ir):
@@ -60,7 +61,7 @@ def source_from_ir(ir):
 
 class OfflineRuntime(Runtime):
     def __init__(self, ir, events):
-        super().__init__(ir, None)
+        super().__init__(ir, None, clock=FixedClock())
         self.recorded = deepcopy(events)
         self.cursor = 0
 
@@ -107,6 +108,8 @@ def reproduce(report):
         raise ValueError("unsupported report version")
     try:
         evidence = report["evidence"]
+        if evidence.get("complete", True) is not True:
+            raise ValueError("execution evidence is incomplete")
         if evidence.get("redacted", False):
             raise ValueError("redacted evidence cannot reproduce a decision")
         if evidence["version"] != 1:

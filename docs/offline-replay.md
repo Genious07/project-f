@@ -18,6 +18,8 @@ python3 -m foresee replay build/replay-demo/run-report.json
 
 Missing, reordered, or trailing events are rejected. Wrong program identity, incorrect inferred types, altered metrics/checks/winners, and mismatched receipt references fail even if the outer checksum was recomputed. Empty candidate sets and stale outcomes can also be reproduced. Provider generation itself is not rerun; recorded proposals are inputs to the reproduced decision.
 
+Day 7 adds an optional `evidence.complete` marker and a `recorded_at` clock value. Provider failures and budget exhaustion mark evidence incomplete and semantic replay rejects it. Clock metadata is not a decision input, authenticated timestamp, or proof of execution time.
+
 ## Interpreting the result
 
 | Field | Meaning |

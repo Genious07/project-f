@@ -1,5 +1,19 @@
 # Development progress
 
+## Day 8: Rust syntax frontend and conformance
+
+Implemented on 28 September 2026.
+
+- Added a Rust workspace, independent lexer/parser, source spans, structured diagnostics, and JSON syntax CLI.
+- Pinned the Rust toolchain and Cargo lockfile; installed the development toolchain locally without changing shell startup configuration.
+- Added 28 shared syntax fixtures and a runner comparing complete tokens/ASTs, spans, and diagnostic codes.
+- Added a bridge from Rust syntax to the Python semantic checker and typed IR generator, with matching acceptance and IR for the shared fixtures.
+- Published an explicit parity table: native Rust semantics/runtime remain unfinished, and Unicode identifiers and extreme nesting differ intentionally.
+
+Validation: 74 Python tests, four Rust unit tests, and 28 shared conformance cases. Rust native typed IR lowering is deferred; the Python-backed bridge is the current checked path. Builds were verified on macOS arm64, with cross-platform CI deferred to Day 9.
+
+Next: Day 9 packaging, CI, clean installation, and container workflow.
+
 ## Day 7: projects, provider contracts, and user data
 
 Implemented on 27 September 2026.

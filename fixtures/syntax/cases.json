@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "cases": [
+    {"name": "repair", "base": "examples/repair.fore", "parse_ok": true, "semantic_ok": true},
+    {"name": "annotations", "base": "examples/repair.fore", "replace": [["let base =", "let base: Snapshot<catalog> ="], ["let chosen =", "let chosen: Selected<catalog> ="]], "parse_ok": true, "semantic_ok": true},
+    {"name": "comments-whitespace", "base": "examples/repair.fore", "replace": [[";", "; // comment\r\n"], ["    ", "\t"]], "parse_ok": true, "semantic_ok": true},
+    {"name": "unicode-string", "base": "examples/repair.fore", "replace": [["Fill only derived unit prices", "茶 café 🍵"]], "parse_ok": true, "semantic_ok": true},
+    {"name": "empty", "source": "", "parse_ok": true, "semantic_ok": false},
+    {"name": "escapes", "source": "decision d() ! {} { let s = \"a\\n\\r\\t\\\"\\\\b\"; return s; }", "parse_ok": true, "semantic_ok": false},
+    {"name": "large-integer", "source": "decision d() ! {} { return 12345678901234567890123456789012345678901234567890; }", "parse_ok": true, "semantic_ok": false},
+    {"name": "leading-zero", "source": "decision d() ! {} { return 000001; }", "parse_ok": true, "semantic_ok": false},
+    {"name": "empty-call", "source": "decision d() ! {} { return catalog.close(); }", "parse_ok": true, "semantic_ok": false},
+    {"name": "nested-expression", "source": "decision d() ! {} { let x = explore p in propose planner<Patch>(snapshot catalog, \"x\", 1) from snapshot catalog { let s = simulate catalog.apply(p); }; return commit select x minimize score to catalog; }", "parse_ok": true, "semantic_ok": false},
+    {"name": "effect-trailing-comma", "source": "decision d() ! { Snapshot(catalog), } { return 1; }", "parse_ok": true, "semantic_ok": false},
+    {"name": "wrong-type", "base": "examples/repair.fore", "replace": [["Catalog;", "Wrong;"]], "parse_ok": true, "semantic_ok": false},
+    {"name": "duplicate-declaration", "source": "resource x: Catalog; resource x: Catalog;", "parse_ok": true, "semantic_ok": false},
+    {"name": "missing-semicolon", "source": "resource x: Catalog", "parse_ok": false},
+    {"name": "missing-colon", "source": "resource x Catalog;", "parse_ok": false},
+    {"name": "bad-return-type", "source": "decision d() -> Int ! {} {}", "parse_ok": false},
+    {"name": "unterminated-block", "source": "decision d() ! {} {", "parse_ok": false},
+    {"name": "bad-escape", "source": "decision d() ! {} { return \"\\q\"; }", "parse_ok": false},
+    {"name": "unterminated-string", "source": "decision d() ! {} { return \"abc", "parse_ok": false},
+    {"name": "unexpected-character", "source": "@", "parse_ok": false},
+    {"name": "no-functions", "source": "fn x() {}", "parse_ok": false},
+    {"name": "no-parameters", "source": "decision d(x: Int) ! {} {}", "parse_ok": false},
+    {"name": "no-arithmetic", "source": "decision d() ! {} { return 1 + 2; }", "parse_ok": false},
+    {"name": "no-lists", "source": "decision d() ! {} { return [1]; }", "parse_ok": false},
+    {"name": "no-trailing-arg-comma", "source": "decision d() ! {} { return catalog.method(1,); }", "parse_ok": false},
+    {"name": "missing-generic-end", "source": "decision d() ! {} { let x: Snapshot<catalog = snapshot catalog; }", "parse_ok": false},
+    {"name": "missing-else", "source": "decision d() ! {} { check catalog.valid_unit_arithmetic(x); }", "parse_ok": false},
+    {"name": "wrong-metric-syntax", "source": "decision d() ! {} { measure n = 1; }", "parse_ok": false}
+  ]
+}

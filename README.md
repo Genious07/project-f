@@ -6,6 +6,8 @@ Start with the [ten-day development plan](docs/development-plan.md) for daily im
 
 To run on your own prepared catalog, follow the [project workflow](docs/projects.md). It covers `init`, configuration, candidate fixtures, `run`, `inspect`, and offline verification.
 
+A [Rust syntax frontend](docs/rust-frontend.md) now parses the shared language subset and is checked against Python fixtures. Type checking and execution remain in Python.
+
 ## Bootstrap prototype
 
 The current prototype is a Python standard-library reference implementation. It validates the first language slice before a production Rust port:

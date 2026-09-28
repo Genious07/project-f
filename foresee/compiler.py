@@ -266,7 +266,11 @@ class Checker:
 
 def compile_source(source: str, source_name: str = "<memory>") -> dict[str, Any]:
     del source_name
-    program = parse(lex(source))
+    return compile_program(parse(lex(source)))
+
+
+def compile_program(program: Program) -> dict[str, Any]:
+    """Check and lower a frontend's syntax tree using reference semantics."""
     checker = Checker(program)
     checker.check()
     ir: dict[str, Any] = {

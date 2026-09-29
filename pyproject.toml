@@ -1,8 +1,17 @@
+[build-system]
+requires = ["setuptools==80.9.0", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "project-f-bootstrap"
 version = "0.0.1"
-description = "Local bootstrap compiler for Project F"
+description = "Experimental decision language with SQLite execution and offline replay"
+readme = "README.md"
 requires-python = ">=3.11"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/Genious07/project-f"
 
 [project.scripts]
 foresee = "foresee.cli:main"

@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from contextlib import closing
 import subprocess
 import sys
 import tempfile
@@ -29,7 +30,7 @@ class RecoveryTests(unittest.TestCase):
                               capture_output=True, text=True, timeout=20)
 
     def state(self, workspace):
-        with sqlite3.connect(workspace / "catalog.db") as db:
+        with closing(sqlite3.connect(workspace / "catalog.db")) as db, db:
             return (db.execute("SELECT revision FROM catalog_meta").fetchone()[0],
                     db.execute("SELECT count(*) FROM foresee_receipts").fetchone()[0],
                     db.execute("SELECT count(*) FROM catalog_rows WHERE unit_price_cents IS NULL").fetchone()[0])
@@ -51,7 +52,7 @@ class RecoveryTests(unittest.TestCase):
                     outcome = recovered["runs"][0]["operations"][0]
                     self.assertEqual(outcome["status"], "applied" if stage == "after_commit" else "unresolved")
                     self.assertEqual(self.state(workspace), expected)
-                with sqlite3.connect(workspace / "runs.db") as db:
+                with closing(sqlite3.connect(workspace / "runs.db")) as db, db:
                     self.assertEqual(db.execute("SELECT count(*) FROM operations").fetchone()[0], 1)
 
     def test_committed_stale_receipt_is_recovered(self):
@@ -80,7 +81,7 @@ class RecoveryTests(unittest.TestCase):
 
     def test_inconsistent_receipt_is_unresolved(self):
         self.assertEqual(self.demo(self.root, "--fault", "after_commit").returncode, 86)
-        with sqlite3.connect(self.root / "catalog.db") as db:
+        with closing(sqlite3.connect(self.root / "catalog.db")) as db, db:
             db.execute("UPDATE foresee_receipts SET intent_digest='changed'")
         result = reconcile(self.root / "runs.db")
         self.assertEqual(result["runs"][0]["operations"][0]["status"], "unresolved")
@@ -88,7 +89,7 @@ class RecoveryTests(unittest.TestCase):
 
     def test_changed_journal_intent_is_unresolved(self):
         self.assertEqual(self.demo(self.root, "--fault", "after_commit").returncode, 86)
-        with sqlite3.connect(self.root / "runs.db") as db:
+        with closing(sqlite3.connect(self.root / "runs.db")) as db, db:
             db.execute("UPDATE operations SET program_digest='changed'")
         result = reconcile(self.root / "runs.db")
         self.assertEqual(result["runs"][0]["operations"][0]["detail"], "journal intent identity mismatch")

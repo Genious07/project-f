@@ -1,6 +1,7 @@
 import json
 import os
 import sqlite3
+from contextlib import closing
 import subprocess
 import sys
 import tempfile
@@ -53,7 +54,7 @@ class ProjectTests(unittest.TestCase):
         with patch.object(Catalog, "seed", side_effect=AssertionError("unexpected seed")):
             result = run_project(config)
         self.assertEqual(result["outcome"]["status"], "no_eligible_candidate")
-        with sqlite3.connect(empty / "catalog.db") as db:
+        with closing(sqlite3.connect(empty / "catalog.db")) as db, db:
             self.assertEqual(db.execute("SELECT count(*) FROM catalog_rows").fetchone()[0], 0)
 
     def test_missing_target_is_not_created(self):
@@ -90,14 +91,14 @@ class ProjectTests(unittest.TestCase):
         self.assertEqual(original, self.config.read_bytes())
 
     def test_user_rows_and_fixtures_work_without_source_edits(self):
-        with sqlite3.connect(self.project / "catalog.db") as db:
+        with closing(sqlite3.connect(self.project / "catalog.db")) as db, db:
             db.execute("DELETE FROM catalog_rows")
             db.execute("INSERT INTO catalog_rows VALUES ('tea', 'Custom tea', 900, 3, NULL)")
             db.execute("UPDATE catalog_meta SET revision=revision+1")
         (self.project / "plans.json").write_text(json.dumps([{"id": "custom", "patches": [{"id": "tea", "unit_price_cents": 300}]}]))
         result = run_project(self.config)
         self.assertEqual(result["selection"]["plan_id"], "custom")
-        with sqlite3.connect(self.project / "catalog.db") as db:
+        with closing(sqlite3.connect(self.project / "catalog.db")) as db, db:
             self.assertEqual(db.execute("SELECT title, unit_price_cents FROM catalog_rows").fetchall(), [("Custom tea", 300)])
 
     def test_provider_error_and_clock_are_injected(self):
@@ -132,11 +133,11 @@ class ProjectTests(unittest.TestCase):
         config = json.loads(self.config.read_text())
         config["target"] = "unprepared.db"
         self.config.write_text(json.dumps(config))
-        with sqlite3.connect(self.project / "unprepared.db") as db:
+        with closing(sqlite3.connect(self.project / "unprepared.db")) as db, db:
             db.execute("CREATE TABLE personal (value TEXT)")
         with self.assertRaises((ValueError, sqlite3.Error)):
             run_project(self.config)
-        with sqlite3.connect(self.project / "unprepared.db") as db:
+        with closing(sqlite3.connect(self.project / "unprepared.db")) as db, db:
             self.assertEqual(db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall(), [("personal",)])
 
 

@@ -1,5 +1,19 @@
 # Development progress
 
+## Day 9: packaging, installation, and CI
+
+Implemented on 29 September 2026.
+
+- Added pinned Python build backend requirements, wheel/source packaging, and artifact exclusions.
+- Added a container with a pinned Python base image and an installed non-root CLI.
+- Added verification scripts for clean wheel installation outside the checkout, cold backup/restore, and persistence across seven network-disabled container runs.
+- Added GitHub Actions for Python 3.11 through 3.14 on Ubuntu, Python 3.14 on macOS, Rust tests/conformance on both systems, and container verification on Ubuntu.
+- Fixed database connection cleanup in tests and verification tools exposed by Python 3.14 warnings.
+
+Local validation: 74 Python tests pass; clean wheel install and full CLI workflow pass; cold backup/restore passes; container persistence passes. Two wheel builds with fixed SOURCE_DATE_EPOCH produced identical SHA-256 hashes. Hosted CI results are recorded in the Verify workflow; no alpha release or package registry publication is made by this milestone.
+
+Next: Day 10 full alpha acceptance, release notes, and release gating.
+
 ## Day 8: Rust syntax frontend and conformance
 
 Implemented on 28 September 2026.

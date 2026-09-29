@@ -1,0 +1,10 @@
+include Cargo.toml Cargo.lock rust-toolchain.toml
+recursive-include foresee *.py
+recursive-include crates *.toml *.rs
+recursive-include docs *.md
+recursive-include examples *.fore
+recursive-include fixtures *.json
+recursive-include tests *.py
+recursive-include tools *.py
+include Dockerfile .dockerignore
+global-exclude *.pyc *.db *.db-journal *.db-wal *.db-shm

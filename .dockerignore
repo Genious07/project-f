@@ -1,0 +1,6 @@
+**
+!Dockerfile
+!pyproject.toml
+!README.md
+!foresee/
+!foresee/*.py

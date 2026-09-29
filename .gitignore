@@ -9,3 +9,5 @@ build/
 *.db-journal
 .toolchain/
 target/
+dist/
+*.egg-info/

@@ -1,6 +1,6 @@
 # Projects, providers, and prepared catalogs
 
-Day 7 adds a project workflow for the supported single-resource SQLite language subset. It requires Python 3.11 or newer and no API key. Installable artifacts and container validation remain Day 9 work; this workflow uses the source checkout.
+Day 7 adds a project workflow for the supported single-resource SQLite language subset. It requires Python 3.11 or newer and no API key. Day 9 adds [wheel installation and containers](installation.md); the walkthrough below also works directly from a source checkout.
 
 ## New project walkthrough
 

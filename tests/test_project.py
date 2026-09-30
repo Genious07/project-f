@@ -140,6 +140,93 @@ class ProjectTests(unittest.TestCase):
         with closing(sqlite3.connect(self.project / "unprepared.db")) as db, db:
             self.assertEqual(db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall(), [("personal",)])
 
+    def test_resolved_input_and_journal_collisions_fail_before_target_open(self):
+        original = json.loads(self.config.read_text())
+        overrides = [
+            {"candidates": "./decision.fore"},
+            {"target": "./foresee.json"},
+            {"target": ".foresee/runs.db"},
+        ]
+        for changes in overrides:
+            with self.subTest(changes=changes):
+                self.config.write_text(json.dumps({**original, **changes}))
+                with patch("foresee.project.Catalog.__init__") as opened:
+                    with self.assertRaisesRegex(ValueError, "paths must be distinct"):
+                        run_project(self.config)
+                    opened.assert_not_called()
+        self.assertFalse((self.project / ".foresee").exists())
+
+    def test_oversized_inputs_fail_before_target_open(self):
+        for filename, size in (("foresee.json", 65537), ("decision.fore", 1000001), ("plans.json", 2000001)):
+            with self.subTest(filename=filename):
+                path = self.project / filename
+                original = path.read_bytes()
+                try:
+                    path.write_bytes(b" " * size)
+                    with patch("foresee.project.Catalog.__init__") as opened:
+                        with self.assertRaisesRegex(ValueError, "exceeds"):
+                            run_project(self.config)
+                        opened.assert_not_called()
+                finally:
+                    path.write_bytes(original)
+
+    def test_invalid_budget_types_and_bounds_fail_before_target_open(self):
+        original = json.loads(self.config.read_text())
+        for budget in (True, "20000", 20000.0, 16383, 2000001):
+            with self.subTest(budget=budget):
+                self.config.write_text(json.dumps({**original, "max_evidence_bytes": budget}))
+                with patch("foresee.project.Catalog.__init__") as opened:
+                    with self.assertRaisesRegex(ValueError, "max_evidence_bytes"):
+                        run_project(self.config)
+                    opened.assert_not_called()
+
+    def test_patch_count_limit_fails_before_target_open(self):
+        plans = [{"id": "too-many", "patches": [
+            {"id": f"row-{i}", "unit_price_cents": 1} for i in range(1001)
+        ]}]
+        (self.project / "plans.json").write_text(json.dumps(plans))
+        with patch("foresee.project.Catalog.__init__") as opened:
+            with self.assertRaisesRegex(ValueError, "1000 patches"):
+                run_project(self.config)
+            opened.assert_not_called()
+
+    def test_cli_no_winner_exit_code_and_persisted_report(self):
+        (self.project / "plans.json").write_text("[]")
+        process = self.cli("run")
+        self.assertEqual(process.returncode, 2, process.stderr)
+        result = json.loads(process.stdout)
+        self.assertEqual(result["outcome"]["status"], "no_eligible_candidate")
+        self.assertTrue(Path(result["report"]).is_file())
+        self.assertTrue(replay_report(Path(result["report"]))["decision_reproduced"])
+        with closing(sqlite3.connect(self.project / "catalog.db")) as db:
+            self.assertEqual(db.execute("SELECT revision FROM catalog_meta").fetchone()[0], 0)
+            self.assertEqual(db.execute("SELECT count(*) FROM foresee_receipts").fetchone()[0], 0)
+
+    def test_lost_commit_acknowledgement_recovers_without_second_write(self):
+        from foresee.journal import Journal, reconcile
+        catalog = Catalog(self.project / "catalog.db", existing=True)
+        journal = Journal(self.project / "runs.db")
+        def lose_acknowledgement(stage):
+            if stage == "after_commit":
+                raise OSError("connection lost after target commit")
+        try:
+            report = Runtime(compile_source(SOURCE), catalog, journal=journal,
+                             fault_hook=lose_acknowledgement).run()
+            self.assertEqual(report["outcome"]["status"], "commit_unresolved")
+            self.assertFalse(report["evidence"]["complete"])
+            state = journal.connection.execute("SELECT state FROM runs WHERE run_id=?", (report["run_id"],)).fetchone()[0]
+            self.assertEqual(state, "prepared")
+            with patch.object(Catalog, "commit", side_effect=AssertionError("must not retry")):
+                recovered = reconcile(journal.path, report["run_id"])
+            run = recovered["runs"][0]
+            self.assertEqual(run["state"], "reconciled")
+            self.assertEqual(run["operations"][0]["status"], "applied")
+            self.assertEqual(catalog.snapshot().revision, 1)
+            self.assertEqual(catalog.connection.execute("SELECT count(*) FROM foresee_receipts").fetchone()[0], 1)
+        finally:
+            journal.close()
+            catalog.close()
+
 
 if __name__ == "__main__":
     unittest.main()

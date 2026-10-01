@@ -1,6 +1,6 @@
 # Installation and local operation
 
-Day 9 packages the Python CLI as a wheel and source archive and adds a container entry point. These are development artifacts; a versioned alpha release is the Day 10 gate. The package has no third-party runtime dependencies. Rust is optional and provides the syntax frontend only.
+The developer alpha is distributed as a Python wheel and source archive and includes a container entry point. The package has no third-party runtime dependencies. Rust is optional and provides the syntax frontend only.
 
 ## Build and install
 
@@ -58,6 +58,6 @@ Restore that directory to the same absolute location or the same `/data` contain
 
 ## CI and operational scope
 
-The `Verify` GitHub Actions workflow runs Python tests and clean-wheel installation on the supported matrix, Rust tests/format/conformance on Ubuntu and macOS, and the container persistence check on Ubuntu. Built Python artifacts are attached to each successful packaging job. The workflow has read-only repository permissions and no model credentials or publishing steps.
+The `Verify` GitHub Actions workflow runs Python tests and clean-wheel installation on the supported matrix, Rust tests/format/conformance on Ubuntu and macOS, and the container persistence check on Ubuntu. Built Python artifacts are attached to each successful packaging job. The workflow has read-only repository permissions and no model credentials or automatic publishing steps. Versioned release artifacts are published manually after the release gate passes.
 
-Use this as a local developer CLI for the documented SQLite domain. It is not a hosted multi-tenant service or a security sandbox. Resource limits, evidence integrity, retry boundaries, and recovery limitations remain as documented in the domain contracts. No PyPI package or container registry image is published by this milestone.
+Use this as a local developer CLI for the documented SQLite domain. It is not a hosted multi-tenant service or a security sandbox. Resource limits, evidence integrity, retry boundaries, and recovery limitations remain as documented in the domain contracts. The alpha is distributed through GitHub Releases; no PyPI package or container registry image is published yet.

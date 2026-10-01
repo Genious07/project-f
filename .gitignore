@@ -10,4 +10,5 @@ build/
 .toolchain/
 target/
 dist/
+release-dist/
 *.egg-info/

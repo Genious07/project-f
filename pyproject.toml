@@ -4,14 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "project-f-bootstrap"
-version = "0.0.1"
-description = "Experimental decision language with SQLite execution and offline replay"
+version = "0.1.0a1"
+description = "Decision language for bounded AI proposals, recoverable effects, and replayable evidence"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
 
 [project.urls]
 Repository = "https://github.com/Genious07/project-f"
+Documentation = "https://github.com/Genious07/project-f/tree/main/docs"
+Changelog = "https://github.com/Genious07/project-f/releases"
 
 [project.scripts]
 foresee = "foresee.cli:main"

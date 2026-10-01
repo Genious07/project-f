@@ -1,8 +1,10 @@
-# Project F
+# Foresee
 
-An experimental decision language for AI systems that propose alternatives, test them against snapshots, and apply a selected change through an explicit commit boundary. The language's working name is Foresee.
+Foresee is an experimental decision language for AI systems that propose alternatives, test every candidate against a snapshot, and apply one selected change through an explicit commit boundary.
 
-Start with the [ten-day development plan](docs/development-plan.md) for daily implementation work, acceptance checks, and release scope.
+The project is designed for decisions that need more than a model response. A Foresee run records what was observed, which alternatives were considered, why one was selected, what effect was attempted, and how the result can be recovered and replayed. It can be installed and operated by an individual developer or a small team without a hosted Foresee service.
+
+The first public developer alpha is available in [GitHub Releases](https://github.com/Genious07/project-f/releases). Start with the [project workflow](docs/projects.md), see the completed [ten-day development plan](docs/development-plan.md), and follow the [next 15 development days](docs/next-15-days.md).
 
 To run on your own prepared catalog, follow the [project workflow](docs/projects.md). It covers `init`, configuration, candidate fixtures, `run`, `inspect`, and offline verification.
 
@@ -10,9 +12,9 @@ The [installation guide](docs/installation.md) covers wheels, containers, persis
 
 A [Rust syntax frontend](docs/rust-frontend.md) now parses the shared language subset and is checked against Python fixtures. Type checking and execution remain in Python.
 
-## Bootstrap prototype
+## Developer alpha
 
-The current prototype is a Python standard-library reference implementation. It validates the first language slice before a production Rust port:
+The alpha is a Python standard-library reference implementation. It validates the first language slice while a production Rust compiler is developed:
 
 - resource and model declarations
 - declared effects
@@ -62,6 +64,6 @@ The [bootstrap language contract](docs/bootstrap-language.md) describes the gram
 
 ## Current limits
 
-This is an early reference implementation for one SQLite catalog demo. It includes signature validation, explicit runtime dispatch, [typed IR](docs/typed-ir.md), static snapshot lineage, and formatting-independent program digests. It supports [single-use selections and isolated branches](docs/selection-ownership.md), [transactional concurrent retries](docs/sqlite-transactions.md), durable intent journaling, and receipt-based reconciliation. Day 6 adds [reproducible offline decisions](docs/offline-replay.md). Missing evidence remains unresolved rather than triggering a retry. The runtime is not a security sandbox, and offline replay does not authenticate report origin or prove live effects.
+This is an early reference implementation for one SQLite catalog domain. It includes signature validation, explicit runtime dispatch, [typed IR](docs/typed-ir.md), static snapshot lineage, and formatting-independent program digests. It supports [single-use selections and isolated branches](docs/selection-ownership.md), [transactional concurrent retries](docs/sqlite-transactions.md), durable intent journaling, receipt-based reconciliation, and [reproducible offline decisions](docs/offline-replay.md). Missing evidence remains unresolved rather than triggering a retry. The runtime is not a security sandbox, and offline replay does not authenticate report origin or prove live effects.
 
 See the [development progress log](docs/progress.md) for completed milestones and validation evidence.

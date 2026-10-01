@@ -1,5 +1,18 @@
 # Development progress
 
+## Day 10: developer alpha release
+
+Implemented on 1 October 2026.
+
+- Promoted the package to `0.1.0a1` and prepared the `v0.1.0-alpha.1` release.
+- Updated the public project description, installation status, product explanation, release notes, and current limitations.
+- Added a gated 15-day plan for the native Rust semantic compiler and initial language server.
+- Prepared versioned wheel and source artifacts with SHA-256 checksums.
+
+Local validation: 80 Python tests pass on Python 3.14; four Rust unit tests pass; all 28 shared frontend fixtures agree; clean wheel installation, the complete CLI workflow, cold backup/restore, and seven-run network-disabled container persistence pass. The release commit is also checked by the hosted Verify matrix before publication.
+
+Next: execute the native Rust compiler milestone in `docs/next-15-days.md`.
+
 ## Day 9: packaging, installation, and CI
 
 Implemented on 29 September 2026.

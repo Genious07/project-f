@@ -1,0 +1,93 @@
+name: Runtime defect
+description: Report incorrect execution, selection, commit, replay, journal, or recovery behavior.
+title: "[runtime] "
+labels: ["area:runtime", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: Preserve the target, report, journal, and receipt evidence when safe. Remove credentials, personal data, and private catalog content before sharing.
+  - type: input
+    id: version
+    attributes:
+      label: Foresee version
+      description: Use a release tag, package version, or full commit hash.
+      placeholder: v0.1.0-alpha.1
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: Include operating system, architecture, Python version, and container runtime when applicable.
+      placeholder: macOS 26 arm64, Python 3.14.6, Docker Desktop 4.x
+    validations:
+      required: true
+  - type: dropdown
+    id: command
+    attributes:
+      label: Failing runtime path
+      options:
+        - foresee run
+        - foresee demo
+        - foresee inspect
+        - foresee replay
+        - foresee reconcile
+        - Python runtime API
+        - Container workflow
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Minimal Foresee source
+      description: Provide the smallest complete program that reaches the failure.
+      render: foresee
+    validations:
+      required: true
+  - type: textarea
+    id: inputs
+    attributes:
+      label: Minimal sanitized inputs
+      description: Include configuration, candidate plans, initial rows and revision, and any fault-injection setting needed to reproduce the result.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: Include expected outcome status, receipt, revision, report, or reconciliation state.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Include exit code, structured outcome, receipt count, revision, and relevant sanitized output.
+    validations:
+      required: true
+  - type: dropdown
+    id: live_effect
+    attributes:
+      label: Did a live effect occur?
+      options:
+        - "No"
+        - "Yes, once"
+        - "Yes, more than once"
+        - Unknown
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction commands
+      description: Include exact setup and commands, starting from a new temporary project when possible.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence inventory
+      description: List which report, journal, target receipt, and backup artifacts exist. Share only sanitized material.
+    validations:
+      required: true

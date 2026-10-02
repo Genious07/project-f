@@ -1,0 +1,72 @@
+name: Language proposal
+description: Propose a language capability with static, runtime, failure, and replay semantics.
+title: "[language] "
+labels: ["language-design", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe a real AI decision workflow that the current language cannot express safely.
+    validations:
+      required: true
+  - type: textarea
+    id: current_limit
+    attributes:
+      label: Current limitation
+      description: Link the relevant compatibility boundary and explain why existing constructs are insufficient.
+    validations:
+      required: true
+  - type: textarea
+    id: syntax
+    attributes:
+      label: Proposed syntax
+      description: Show a small complete Foresee program or focused syntax example.
+      render: foresee
+    validations:
+      required: true
+  - type: textarea
+    id: static_semantics
+    attributes:
+      label: Static semantics
+      description: Define types, ownership, resource lineage, allowed contexts, and compile-time failures.
+    validations:
+      required: true
+  - type: textarea
+    id: runtime_semantics
+    attributes:
+      label: Runtime semantics
+      description: Define deterministic behavior, provider interactions, effect boundaries, and resource use.
+    validations:
+      required: true
+  - type: textarea
+    id: failure_semantics
+    attributes:
+      label: Failure, retry, and recovery semantics
+      description: Explain behavior at every interruption point and whether any effect may have occurred.
+    validations:
+      required: true
+  - type: textarea
+    id: replay
+    attributes:
+      label: Evidence and replay
+      description: List the evidence needed to inspect and reproduce the decision offline.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      description: Identify grammar, syntax AST, typed IR, report, adapter, or runtime version changes.
+    validations:
+      required: true
+  - type: dropdown
+    id: live_effect
+    attributes:
+      label: Can this feature authorize a live effect?
+      options:
+        - "Yes"
+        - "No"
+        - Unclear
+    validations:
+      required: true

@@ -8,6 +8,8 @@ These are development days, not unattended calendar runs. Each day ends with a r
 
 ## Day 1: alpha feedback baseline
 
+Status: completed on 2 October 2026. See the issue forms in `.github/ISSUE_TEMPLATE`, the alpha contract in `docs/compatibility.md`, and the recorded validation in `docs/progress.md`.
+
 - Create issue templates for compiler defects, runtime defects, adapter requests, and language proposals.
 - Record the alpha compatibility matrix and the exact supported language surface.
 - Convert any release acceptance failures into reproducible fixtures.

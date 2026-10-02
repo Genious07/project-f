@@ -1,0 +1,83 @@
+name: Compiler defect
+description: Report incorrect parsing, checking, diagnostics, typed IR, or program identity.
+title: "[compiler] "
+labels: ["area:compiler", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: Please remove secrets and private data. A small complete program is more useful than a large project archive.
+  - type: input
+    id: version
+    attributes:
+      label: Foresee version
+      description: Use a release tag, package version, or full commit hash.
+      placeholder: v0.1.0-alpha.1
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      description: Include operating system, architecture, Python version, and Rust version when applicable.
+      placeholder: Ubuntu 24.04 x86_64, Python 3.14.0, Rust 1.98.1
+    validations:
+      required: true
+  - type: dropdown
+    id: command
+    attributes:
+      label: Failing compiler path
+      options:
+        - foresee check
+        - foresee build
+        - foresee-syntax lex
+        - foresee-syntax parse
+        - Cross-language conformance
+        - Python compiler API
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Minimal Foresee source
+      description: Provide the smallest complete program that reproduces the problem.
+      render: foresee
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result
+      description: State whether the source should compile and the expected type, diagnostic, IR, or digest behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Include diagnostic codes, spans, exit code, and relevant output.
+    validations:
+      required: true
+  - type: dropdown
+    id: live_effect
+    attributes:
+      label: Did a live effect occur?
+      description: Compiler commands should not mutate a target. Report any observed effect explicitly.
+      options:
+        - "No"
+        - "Yes"
+        - Unknown
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction commands
+      description: Include exact commands from a clean checkout or installed artifact.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add sanitized IR, logs, or related links when they help reproduce the defect.

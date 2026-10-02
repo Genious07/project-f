@@ -4,7 +4,7 @@ Foresee is an experimental decision language for AI systems that propose alterna
 
 The project is designed for decisions that need more than a model response. A Foresee run records what was observed, which alternatives were considered, why one was selected, what effect was attempted, and how the result can be recovered and replayed. It can be installed and operated by an individual developer or a small team without a hosted Foresee service.
 
-The first public developer alpha is available in [GitHub Releases](https://github.com/Genious07/project-f/releases). Start with the [project workflow](docs/projects.md), see the completed [ten-day development plan](docs/development-plan.md), and follow the [next 15 development days](docs/next-15-days.md).
+The first public developer alpha is available in [GitHub Releases](https://github.com/Genious07/project-f/releases). Start with the [project workflow](docs/projects.md), check the exact [alpha compatibility contract](docs/compatibility.md), see the completed [ten-day development plan](docs/development-plan.md), and follow the [next 15 development days](docs/next-15-days.md).
 
 To run on your own prepared catalog, follow the [project workflow](docs/projects.md). It covers `init`, configuration, candidate fixtures, `run`, `inspect`, and offline verification.
 

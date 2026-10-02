@@ -1,0 +1,70 @@
+name: Resource adapter request
+description: Propose a target system with explicit transaction, retry, receipt, and recovery semantics.
+title: "[adapter] "
+labels: ["area:adapter", "needs-triage"]
+body:
+  - type: input
+    id: target
+    attributes:
+      label: Target system and version
+      placeholder: PostgreSQL 18
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Concrete AI decision use case
+      description: Describe the observed state, proposed change, policy checks, committed effect, and intended users.
+    validations:
+      required: true
+  - type: textarea
+    id: atomicity
+    attributes:
+      label: Atomicity and consistency model
+      description: Explain transaction boundaries, snapshot behavior, conflicting writers, and what can be committed together.
+    validations:
+      required: true
+  - type: textarea
+    id: idempotency
+    attributes:
+      label: Idempotency and operation identity
+      description: Explain how a retry identifies the same operation and how conflicting intent is rejected.
+    validations:
+      required: true
+  - type: textarea
+    id: receipts
+    attributes:
+      label: Durable receipt design
+      description: Explain where receipts live, what they prove, and how they are read after lost acknowledgement.
+    validations:
+      required: true
+  - type: textarea
+    id: recovery
+    attributes:
+      label: Crash and reconciliation behavior
+      description: Cover failure before commit, during commit, and after commit before acknowledgement.
+    validations:
+      required: true
+  - type: textarea
+    id: deployment
+    attributes:
+      label: Deployment and access model
+      description: Include authentication, network boundary, expected scale, and whether a small team can self-host it.
+    validations:
+      required: true
+  - type: textarea
+    id: sensitivity
+    attributes:
+      label: Evidence sensitivity
+      description: Identify secrets or regulated data that snapshots, plans, receipts, and reports may contain.
+    validations:
+      required: true
+  - type: checkboxes
+    id: readiness
+    attributes:
+      label: Proposal readiness
+      options:
+        - label: I understand that implementing an interface alone does not establish adapter conformance.
+          required: true
+        - label: I can provide a disposable test environment or emulator for conformance testing.
+          required: false

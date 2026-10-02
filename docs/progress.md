@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 1: alpha feedback baseline
+
+Implemented on 2 October 2026.
+
+- Added structured GitHub issue forms for compiler defects, runtime defects, resource adapter requests, and language proposals.
+- Required defect reports to identify the version, platform, minimal source, expected behavior, actual behavior, reproduction commands, and whether a live effect occurred.
+- Published the exact alpha compatibility contract for platforms, schemas, language constructs, commands, resource and provider boundaries, tested guarantees, input limits, and unsupported capabilities.
+- Recorded the release-machine Python 3.9 mismatch as an environment selection issue. The supported Python 3.14 verification passed, so no product regression fixture was invented.
+
+Validation: all issue forms parse as YAML and contain their required reproduction fields; repository checks remain green.
+
+Next: day 2 Rust semantic architecture and rule-to-phase mapping.
+
 ## Day 10: developer alpha release
 
 Implemented on 1 October 2026.

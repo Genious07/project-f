@@ -1,5 +1,19 @@
 # Development progress
 
+## Rust milestone day 2: semantic compiler architecture
+
+Completed on 3 October 2026.
+
+- Defined the proposed native compiler modules, typed AST boundary, symbol and type representations, source spans, snapshot identities, and affine selection identities.
+- Mapped every current F3xxx semantic diagnostic to an owning phase and fixture group, distinguishing existing evidence from missing cases.
+- Specified traversal and diagnostic recovery compatibility, including alias consumption and unordered declared-effect diagnostics.
+- Defined syntax 1 to typed IR 0.0.3 lowering and Python-compatible canonical JSON, including ASCII escapes for Unicode digest parity.
+- Kept the native checker and new fixture groups explicitly planned; this milestone ships the architecture, not native semantics.
+
+Validation: audited the mapping against the reference checker and signature registry; checked local document links and diff formatting.
+
+Next: day 3 native Rust declarations and symbol tables.
+
 ## Rust milestone day 1: alpha feedback baseline
 
 Implemented on 2 October 2026.

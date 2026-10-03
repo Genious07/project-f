@@ -1,6 +1,6 @@
 # Rust frontend milestone
 
-Day 8 adds a Rust workspace with the `foresee-syntax` library and CLI. It independently implements lexical analysis, recursive-descent parsing, character-based source spans, and structured diagnostics for the supported syntax. Python remains the semantic compiler and runtime.
+Day 8 adds a Rust workspace with the `foresee-syntax` library and CLI. It independently implements lexical analysis, recursive-descent parsing, character-based source spans, and structured diagnostics for the supported syntax. Python remains the semantic compiler and runtime. The next implementation is specified in the [native semantic compiler architecture](rust-semantic-architecture.md).
 
 ## Build and run
 

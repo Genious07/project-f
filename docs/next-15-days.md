@@ -18,6 +18,8 @@ Acceptance: a report includes version, platform, minimal source, expected result
 
 ## Day 2: Rust semantic architecture
 
+Status: design completed on 3 October 2026. See [native compiler architecture](rust-semantic-architecture.md) for module ownership, native data structures, diagnostic compatibility, and the rule-to-fixture mapping. Implementation starts on day 3.
+
 - Define compiler phases, semantic data structures, error ownership, and module boundaries.
 - Represent symbols, declared effects, resource identities, source spans, and inferred types without Python objects.
 - Document how syntax version 1 lowers toward typed IR 0.0.3.

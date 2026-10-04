@@ -1,0 +1,9 @@
+[package]
+name = "foresee-semantics"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+foresee-syntax = { path = "../foresee-syntax" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["arbitrary_precision"] }

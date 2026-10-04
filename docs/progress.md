@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 3: declarations and symbols
+
+Implemented on 4 October 2026.
+
+- Added the native `foresee-semantics` crate with declaration cardinality/type/name checks and distinct resource/model/decision symbol IDs.
+- Added an explicitly declaration-only development CLI with bounded source reads and structured diagnostics.
+- Added 28 shared declaration cases comparing Python and Rust diagnostic codes, order, locations, and symbol output; added five CLI failure checks.
+- Added four Rust unit tests and one Python corpus test, and enabled the native comparison in both hosted Rust jobs.
+
+Local validation: 81 Python tests, eight Rust unit tests, 28 existing syntax fixtures, and 28 new declaration fixtures pass. No native expression checking or executable IR is claimed by this milestone.
+
+Next: day 4 native expression type inference.
+
 ## Rust milestone day 2: semantic compiler architecture
 
 Completed on 3 October 2026.

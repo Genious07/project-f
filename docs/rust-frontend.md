@@ -2,6 +2,8 @@
 
 Day 8 adds a Rust workspace with the `foresee-syntax` library and CLI. It independently implements lexical analysis, recursive-descent parsing, character-based source spans, and structured diagnostics for the supported syntax. Python remains the semantic compiler and runtime. The next implementation is specified in the [native semantic compiler architecture](rust-semantic-architecture.md).
 
+The [native declaration checker](rust-declarations.md) now validates top-level declaration types, cardinality, and names; full expression semantics and execution still use Python.
+
 ## Build and run
 
 With rustup installed, the repository selects Rust 1.98.1 using `rust-toolchain.toml`. Cargo dependency versions and checksums are committed in `Cargo.lock`.

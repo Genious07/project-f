@@ -41,6 +41,7 @@ jobs:
       - run: cargo test --workspace --locked
       - run: cargo build --workspace --locked
       - run: python tools/check_frontends.py
+      - run: python tools/check_declarations.py
   container:
     runs-on: ubuntu-latest
     steps:

@@ -74,7 +74,7 @@ def main():
                 if accepted:
                     assert bridged == compile_source(source), (case["name"], "typed IR bridge mismatch")
             count += 1
-    print(f"PASS: {count} shared fixtures; token/AST values and spans, diagnostic codes/spans match. Bridged Python semantic checks and typed IR match. Rust semantic checking is not implemented.")
+    print(f"PASS: {count} shared fixtures; token/AST values and spans, diagnostic codes/spans match. Bridged Python semantic checks and typed IR match. Full Rust semantic checking is not implemented; native declaration parity is checked separately.")
 
 
 if __name__ == "__main__":

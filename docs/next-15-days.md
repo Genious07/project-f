@@ -28,6 +28,8 @@ Acceptance: the architecture document maps every supported Python semantic rule 
 
 ## Day 3: declarations and symbol tables
 
+Status: completed on 4 October 2026. The [native declaration checker](rust-declarations.md) passes 28 shared cases against Python, including diagnostic locations. Full body checking remains deferred.
+
 - Check resource, model, and decision declarations natively.
 - Detect duplicate names, missing entry points, unsupported types, and ambiguous programs.
 - Preserve source spans in diagnostics while excluding them from semantic identity.

@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "name": "valid declarations, invalid outcome body",
+      "source": "resource catalog: Catalog;\nmodel planner: Planner;\ndecision repair() ! {} { return 1; }\n",
+      "codes": []
+    },
+    {
+      "name": "full supported example",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "codes": []
+    },
+    {
+      "name": "empty",
+      "source": "",
+      "codes": [
+        "F3200"
+      ]
+    },
+    {
+      "name": "missing resource",
+      "source": "model planner: Planner;\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3200"
+      ]
+    },
+    {
+      "name": "missing model",
+      "source": "resource catalog: Catalog;\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3200"
+      ]
+    },
+    {
+      "name": "missing decision",
+      "source": "resource catalog: Catalog;\nmodel planner: Planner;\n",
+      "codes": [
+        "F3200"
+      ]
+    },
+    {
+      "name": "extra resource",
+      "source": "resource catalog: Catalog;\nresource extra: Catalog;\nmodel planner: Planner;\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3200"
+      ]
+    },
+    {
+      "name": "extra model",
+      "source": "resource catalog: Catalog;\nmodel planner: Planner;\nmodel extra: Planner;\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3200"
+      ]
+    },
+    {
+      "name": "extra decision",
+      "source": "resource catalog: Catalog;\nmodel planner: Planner;\ndecision repair() ! {} { return 1; }\ndecision extra() ! {} { return 1; }",
+      "codes": [
+        "F3200"
+      ]
+    },
+    {
+      "name": "unsupported resource",
+      "source": "resource catalog: Other;\nmodel planner: Planner;\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3201"
+      ]
+    },
+    {
+      "name": "unsupported model",
+      "source": "resource catalog: Catalog;\nmodel planner: Other;\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3201"
+      ]
+    },
+    {
+      "name": "both unsupported types",
+      "source": "resource catalog: Other;\nmodel planner: Other;\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3201",
+        "F3201"
+      ]
+    },
+    {
+      "name": "resource-model collision",
+      "source": "resource catalog: Catalog;\nmodel catalog: Planner;\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3000"
+      ]
+    },
+    {
+      "name": "resource-decision collision",
+      "source": "resource catalog: Catalog;\nmodel planner: Planner;\ndecision catalog() ! {} { return 1; }\n",
+      "codes": [
+        "F3000"
+      ]
+    },
+    {
+      "name": "model-decision collision",
+      "source": "resource catalog: Catalog;\nmodel planner: Planner;\ndecision planner() ! {} { return 1; }\n",
+      "codes": [
+        "F3000"
+      ]
+    },
+    {
+      "name": "duplicate resource",
+      "source": "resource catalog: Catalog;\nresource catalog: Catalog;\nmodel planner: Planner;\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3200",
+        "F3000"
+      ]
+    },
+    {
+      "name": "duplicate model",
+      "source": "resource catalog: Catalog;\nmodel planner: Planner;\nmodel planner: Planner;\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3200",
+        "F3000"
+      ]
+    },
+    {
+      "name": "duplicate decision",
+      "source": "resource catalog: Catalog;\nmodel planner: Planner;\ndecision repair() ! {} { return 1; }\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3200",
+        "F3000"
+      ]
+    },
+    {
+      "name": "ordered combined errors",
+      "source": "resource catalog: Other;\nresource catalog: Other;\nmodel planner: Other;\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3200",
+        "F3201",
+        "F3201",
+        "F3201",
+        "F3000"
+      ]
+    },
+    {
+      "name": "reordered declarations",
+      "source": "decision repair() ! {} { return 1; }\nmodel planner: Planner;\nresource catalog: Catalog;\n",
+      "codes": []
+    },
+    {
+      "name": "Unicode before declaration",
+      "source": "// café 😀\nresource catalog: Other;\nmodel planner: Planner;\ndecision repair() ! {} { return 1; }\n",
+      "codes": [
+        "F3201"
+      ]
+    },
+    {
+      "name": "CRLF and tab spans",
+      "source": "\tresource catalog: Catalog;\r\nmodel planner: Other;\r\ndecision repair() ! {} { return 1; }\r\n",
+      "codes": [
+        "F3201"
+      ]
+    },
+    {
+      "name": "renamed symbols",
+      "source": "resource stock: Catalog;\nmodel proposer: Planner;\ndecision repair_stock() ! {} { return 1; }\n",
+      "codes": []
+    },
+    {
+      "name": "invalid return annotation",
+      "source": "resource catalog: Catalog;\nmodel planner: Planner;\ndecision repair() -> String ! {} { return 1; }\n",
+      "codes": [
+        "F2001"
+      ]
+    },
+    {
+      "name": "parameters unsupported",
+      "source": "resource catalog: Catalog;\nmodel planner: Planner;\ndecision repair(x) ! {} { return 1; }\n",
+      "codes": [
+        "F2001"
+      ]
+    },
+    {
+      "name": "malformed declaration",
+      "source": "resource catalog Catalog;",
+      "codes": [
+        "F2001"
+      ]
+    },
+    {
+      "name": "unknown effect deliberately deferred",
+      "source": "resource catalog: Catalog;\nmodel planner: Planner;\ndecision repair() ! { Write(missing) } { return 1; }\n",
+      "codes": []
+    },
+    {
+      "name": "missing body deliberately deferred",
+      "source": "resource catalog: Catalog;\nmodel planner: Planner;\ndecision repair() ! {} {}",
+      "codes": []
+    }
+  ]
+}

@@ -38,6 +38,8 @@ Acceptance: Rust and Python agree on all declaration fixtures and diagnostic loc
 
 ## Day 4: expression type inference
 
+Status: completed on 6 October 2026. See [native type analysis](rust-types.md) for the implemented checks and explicit stage boundary. All 66 shared type cases match Python.
+
 - Infer scalar, snapshot, plan-set, trials, selection, and outcome types.
 - Check method receivers, argument counts, argument types, annotations, and return types.
 - Emit stable diagnostic codes for each failure class.

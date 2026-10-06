@@ -10,7 +10,7 @@ To run on your own prepared catalog, follow the [project workflow](docs/projects
 
 The [installation guide](docs/installation.md) covers wheels, containers, persistent storage, backup/restore, and CI. Runtime dependencies are Python's standard library only.
 
-A [Rust syntax frontend](docs/rust-frontend.md) now parses the shared language subset and is checked against Python fixtures. A [native Rust declaration checker](docs/rust-declarations.md) now validates declaration types, cardinality, and names. Full expression checking and execution remain in Python.
+A [Rust syntax frontend](docs/rust-frontend.md) now parses the shared language subset and is checked against Python fixtures. A [native Rust declaration checker](docs/rust-declarations.md) now validates declaration types, cardinality, and names. [Native expression type analysis](docs/rust-types.md) now checks annotations, calls, and outcomes. Complete semantic validation and execution remain in Python.
 
 ## Developer alpha
 

@@ -1,10 +1,10 @@
-use foresee_semantics::{check_declarations, DeclarationFailure};
+use foresee_semantics::{check_declarations, check_types, DeclarationFailure};
 use serde_json::json;
 use std::{env, fs::File, io::Read, process};
 fn main() {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 || args[1] != "declarations" {
-        eprintln!("usage: foresee-semantics declarations SOURCE\nDeclaration checks only; use Python for complete semantic validation.");
+    if args.len() != 3 || !["declarations", "types"].contains(&args[1].as_str()) {
+        eprintln!("usage: foresee-semantics <declarations|types> SOURCE\nStaged checks only; use Python for complete semantic validation.");
         process::exit(2);
     }
     let mut bytes = Vec::new();
@@ -24,15 +24,18 @@ fn main() {
             process::exit(2);
         }
     };
-    match check_declarations(&source) {
-        Ok(symbols) => println!(
-            "{}",
-            json!({"ok":true,"checked_phase":"declarations","executable":false,"symbols":symbols.symbols()})
-        ),
+    let phase = &args[1];
+    let result = if phase == "types" {
+        check_types(&source).map(|analysis| json!({"ok":true,"checked_phase":phase,"executable":false,"expressions":analysis.expressions()}))
+    } else {
+        check_declarations(&source).map(|symbols| json!({"ok":true,"checked_phase":phase,"executable":false,"symbols":symbols.symbols()}))
+    };
+    match result {
+        Ok(value) => println!("{value}"),
         Err(DeclarationFailure::Diagnostics(diagnostics)) => {
             println!(
                 "{}",
-                json!({"ok":false,"checked_phase":"declarations","executable":false,"diagnostics":diagnostics})
+                json!({"ok":false,"checked_phase":phase,"executable":false,"diagnostics":diagnostics})
             );
             process::exit(1);
         }

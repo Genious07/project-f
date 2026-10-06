@@ -39,4 +39,4 @@ Four Rust unit tests cover namespace lookup, absence of a success table on error
 
 ## Next
 
-Day 4 introduces typed expression nodes and inference. Effects, lineage, ownership, native typed IR lowering, and canonical digests remain later work. The Python runtime, SQLite adapter, and offline replay are unchanged.
+Day 4 adds [native type analysis](rust-types.md) through the separate `types` command. Effects, lineage, ownership, native typed IR lowering, and canonical digests remain later work. The Python runtime, SQLite adapter, and offline replay are unchanged.

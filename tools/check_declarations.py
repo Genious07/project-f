@@ -72,7 +72,7 @@ def main():
         for argv in ([binary], [binary, "check", str(source)], [binary, "declarations", str(source.with_name("missing.fore"))]):
             process = subprocess.run(argv, capture_output=True, timeout=10)
             assert process.returncode == 2 and not process.stdout
-    print(f"PASS: {len(corpus)} declaration fixtures match Python codes, spans, and symbols; 5 CLI error paths pass. Body semantics remain Python-only.")
+    print(f"PASS: {len(corpus)} declaration fixtures match Python codes, spans, and symbols; 5 CLI error paths pass. Full semantic validation remains Python-only; type analysis is checked separately.")
 
 
 if __name__ == "__main__":

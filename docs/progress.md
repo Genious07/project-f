@@ -1,5 +1,19 @@
 # Development progress
 
+## Rust milestone day 4: expression type inference
+
+Implemented on 6 October 2026.
+
+- Added owned Rust expression/statement enums and native inferred kinds with resource IDs, snapshot metadata, and trial metrics.
+- Added the `types` development command, covering binding scopes, annotations, method signatures, arguments, proposals, metrics, selections, commit types, and outcome returns.
+- Added 66 differential type cases comparing every expression type and source span, with exact error-code/order comparisons for rejected programs.
+- Added five Rust tests, one Python corpus test, and hosted comparison steps on Linux and macOS.
+- Preserved an explicit non-executable stage boundary: effect, cross-origin, and affine ownership validation remain later milestones.
+
+Local validation: 82 Python tests, 13 Rust unit tests, 66 type fixtures, 28 declaration fixtures, five declaration CLI error paths, and 28 syntax fixtures pass.
+
+Next: day 5 native effect checking.
+
 ## Rust milestone day 3: declarations and symbols
 
 Implemented on 4 October 2026.

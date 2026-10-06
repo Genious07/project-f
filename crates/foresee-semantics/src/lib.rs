@@ -1,4 +1,7 @@
-//! Declaration checking only. Success does not authorize execution or imply body validity.
+//! Staged declaration and type analysis. Success does not authorize execution.
+mod ast;
+mod checker;
+pub mod types;
 use foresee_syntax::{Diagnostic, Span};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -71,7 +74,7 @@ struct DecisionDeclaration {
     name: String,
     span: SourceSpan,
 }
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 struct SourceSpan {
     start: usize,
     end: usize,
@@ -219,4 +222,14 @@ mod tests {
         let second = serde_json::to_value(check_declarations(SOURCE).unwrap()).unwrap();
         assert_eq!(first, second);
     }
+}
+
+/// Infer expression types after declarations pass. Effects, origin validation, and
+/// affine ownership are deferred. The returned analysis is not executable IR.
+pub fn check_types(source: &str) -> Result<types::TypeAnalysis, DeclarationFailure> {
+    let symbols = check_declarations(source)?;
+    let syntax = foresee_syntax::parse(source).map_err(DeclarationFailure::Diagnostics)?;
+    let program: ast::BodyProgram = serde_json::from_value(syntax)
+        .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
+    checker::check(program, &symbols)
 }

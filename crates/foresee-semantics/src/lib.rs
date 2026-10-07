@@ -1,6 +1,7 @@
 //! Staged declaration and type analysis. Success does not authorize execution.
 mod ast;
 mod checker;
+mod signatures;
 pub mod types;
 use foresee_syntax::{Diagnostic, Span};
 use serde::{Deserialize, Serialize};
@@ -231,5 +232,15 @@ pub fn check_types(source: &str) -> Result<types::TypeAnalysis, DeclarationFailu
     let syntax = foresee_syntax::parse(source).map_err(DeclarationFailure::Diagnostics)?;
     let program: ast::BodyProgram = serde_json::from_value(syntax)
         .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
-    checker::check(program, &symbols)
+    checker::check(program, &symbols, false)
+}
+
+/// Validate declared effects and branch restrictions in addition to types.
+/// Origin validation and affine ownership remain pending. No executable IR is emitted.
+pub fn check_effects(source: &str) -> Result<types::TypeAnalysis, DeclarationFailure> {
+    let symbols = check_declarations(source)?;
+    let syntax = foresee_syntax::parse(source).map_err(DeclarationFailure::Diagnostics)?;
+    let program: ast::BodyProgram = serde_json::from_value(syntax)
+        .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
+    checker::check(program, &symbols, true)
 }

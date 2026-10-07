@@ -8,6 +8,7 @@ pub(crate) struct BodyProgram {
 }
 #[derive(Deserialize)]
 pub(crate) struct Decision {
+    pub effects: Vec<(String, String)>,
     pub body: Vec<Statement>,
     pub span: SourceSpan,
 }

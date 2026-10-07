@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 5: effect checking
+
+Implemented on 7 October 2026.
+
+- Added native effect namespace validation, used-permission tracking, missing-effect diagnostics, and forbidden exploration operations.
+- Centralized native method signatures, effect target rules, and branch restrictions in a closed signature registry.
+- Added the `effects` command while preserving the earlier declaration-only and type-only stages.
+- Added 35 effect cases, four Rust tests, one Python corpus test, and hosted effect comparisons against all 66 type regressions.
+
+Local validation: 83 Python tests and 17 Rust unit tests pass, along with syntax, declaration, type, and effect comparisons. Lineage validation and affine ownership remain pending.
+
+Next: day 6 resource and snapshot lineage validation.
+
 ## Rust milestone day 4: expression type inference
 
 Implemented on 6 October 2026.

@@ -1,13 +1,16 @@
 use crate::ast::{BodyProgram, Expr, ExprKind, Statement, StatementKind};
+use crate::signatures;
 use crate::types::{ExpressionType, InferredType, ResourceRef, TypeAnalysis, TypeKind};
 use crate::{error, DeclarationFailure, DeclarationSymbols, SourceSpan, SymbolId};
 use foresee_syntax::Diagnostic;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use TypeKind::*;
 
 type Env = BTreeMap<std::string::String, InferredType>;
 struct Checker<'a> {
     symbols: &'a DeclarationSymbols,
+    effects_enabled: bool,
+    used: BTreeSet<(std::string::String, std::string::String)>,
     errors: Vec<Diagnostic>,
     expressions: Vec<ExpressionType>,
     snapshot_count: usize,
@@ -18,9 +21,12 @@ struct Checker<'a> {
 pub(crate) fn check(
     program: BodyProgram,
     symbols: &DeclarationSymbols,
+    effects_enabled: bool,
 ) -> Result<TypeAnalysis, DeclarationFailure> {
     let mut checker = Checker {
         symbols,
+        effects_enabled,
+        used: BTreeSet::new(),
         errors: vec![],
         expressions: vec![],
         snapshot_count: 0,
@@ -28,6 +34,20 @@ pub(crate) fn check(
         branch_base: None,
     };
     for decision in program.decisions {
+        checker.used.clear();
+        let declared: BTreeSet<_> = decision.effects.iter().cloned().collect();
+        if effects_enabled {
+            for (kind, target) in &declared {
+                if !signatures::effect_target_matches(kind, symbols.lookup(target).map(|s| s.id()))
+                {
+                    checker.error(
+                        "F3202",
+                        &format!("invalid effect {kind}({target})"),
+                        &decision.span,
+                    );
+                }
+            }
+        }
         let returns: Vec<_> = decision
             .body
             .iter()
@@ -45,6 +65,33 @@ pub(crate) fn check(
         for statement in &decision.body {
             checker.statement(statement, &mut env);
         }
+        if effects_enabled {
+            let missing: Vec<_> = checker.used.difference(&declared).cloned().collect();
+            for (kind, target) in missing {
+                checker.error(
+                    "F3001",
+                    &format!("effect {kind}({target}) is used but not declared"),
+                    &decision.span,
+                );
+            }
+            let unknown: BTreeSet<_> = declared
+                .iter()
+                .filter_map(|(_, target)| {
+                    (!matches!(
+                        symbols.lookup(target).map(|s| s.id()),
+                        Some(SymbolId::Resource(_) | SymbolId::Model(_))
+                    ))
+                    .then_some(target)
+                })
+                .collect();
+            for target in unknown {
+                checker.error(
+                    "F3002",
+                    &format!("unknown effect target {target:?}"),
+                    &decision.span,
+                );
+            }
+        }
     }
     if checker.errors.is_empty() {
         checker.expressions.sort_by_key(|e| e.node_id);
@@ -58,6 +105,11 @@ pub(crate) fn check(
 impl Checker<'_> {
     fn error(&mut self, code: &str, message: &str, span: &SourceSpan) {
         self.errors.push(error(code, message, span.clone().into()));
+    }
+    fn use_effect(&mut self, kind: &str, target: &str) {
+        if self.effects_enabled {
+            self.used.insert((kind.into(), target.into()));
+        }
     }
     fn resource(&self, name: &str) -> ResourceRef {
         ResourceRef::resolve(name, self.symbols)
@@ -174,6 +226,20 @@ impl Checker<'_> {
         ty
     }
     fn infer(&mut self, expr: &Expr, env: &Env) -> InferredType {
+        if self.effects_enabled
+            && self.branch_base.is_some()
+            && signatures::forbidden_in_branch(expr.kind.name())
+        {
+            self.error(
+                if matches!(expr.kind, ExprKind::Commit { .. }) {
+                    "F3102"
+                } else {
+                    "F3207"
+                },
+                &format!("{} is forbidden inside explore", expr.kind.name()),
+                &expr.span,
+            );
+        }
         match &expr.kind {
             ExprKind::String { value } => {
                 let _ = value;
@@ -189,6 +255,7 @@ impl Checker<'_> {
                 if matches!(reference, ResourceRef::Unresolved(_)) {
                     self.error("F3005", "unknown resource", &expr.span);
                 }
+                self.use_effect("Snapshot", resource);
                 self.snapshot_count += 1;
                 InferredType {
                     kind: Snapshot,
@@ -208,6 +275,7 @@ impl Checker<'_> {
                 ) {
                     self.error("F3006", "unknown model", &expr.span);
                 }
+                self.use_effect("Infer", model);
                 let types =
                     self.arguments(args, &[&[Snapshot], &[String], &[Int]], env, &expr.span);
                 if plan_type != "Patch" {
@@ -243,6 +311,7 @@ impl Checker<'_> {
                     } else {
                         base.resource.clone().expect("checked above")
                     };
+                self.use_effect("Explore", &resource.name(self.symbols));
                 let mut local = env.clone();
                 if local.contains_key(item) || self.reserved(item) {
                     self.error(
@@ -308,16 +377,9 @@ impl Checker<'_> {
                 method,
                 args,
             } => {
-                let (expected, result): (&[&[TypeKind]], TypeKind) = match method.as_str() {
-                    "source_fields_unchanged" => {
-                        (&[&[Snapshot, Simulated], &[Snapshot, Simulated]], Bool)
-                    }
-                    "valid_unit_arithmetic" => (&[&[Snapshot, Simulated]], Bool),
-                    "unresolved_units" => (&[&[Snapshot, Simulated]], Int),
-                    _ => {
-                        self.error("F3210", "unknown resource method", &expr.span);
-                        return InferredType::scalar(Error);
-                    }
+                let Some((expected, result)) = signatures::method(method) else {
+                    self.error("F3210", "unknown resource method", &expr.span);
+                    return InferredType::scalar(Error);
                 };
                 if matches!(self.resource(target), ResourceRef::Unresolved(_)) {
                     self.error("F3210", "unknown resource method", &expr.span);
@@ -340,6 +402,13 @@ impl Checker<'_> {
                 InferredType::derived(Selected, &trials)
             }
             ExprKind::Commit { selected, resource } => {
+                if self.effects_enabled && self.branch_base.is_some() {
+                    self.error(
+                        "F3102",
+                        "live commit is forbidden inside explore",
+                        &expr.span,
+                    );
+                }
                 let selected = self.expr(selected, env);
                 let resource = self.resource(resource);
                 if selected.kind != Selected || selected.resource.as_ref() != Some(&resource) {
@@ -349,6 +418,7 @@ impl Checker<'_> {
                         &expr.span,
                     );
                 }
+                self.use_effect("Commit", &resource.name(self.symbols));
                 InferredType {
                     kind: Outcome,
                     resource: Some(resource),
@@ -433,5 +503,71 @@ mod tests {
             "let first = commit chosen to catalog; return commit chosen to catalog;",
         );
         assert!(check_types(&source).is_ok());
+    }
+}
+
+#[cfg(test)]
+mod effect_tests {
+    use crate::{check_effects, DeclarationFailure};
+    const SOURCE: &str = include_str!("../../../examples/repair.fore");
+    fn errors(source: &str) -> Vec<foresee_syntax::Diagnostic> {
+        match check_effects(source) {
+            Err(DeclarationFailure::Diagnostics(errors)) => errors,
+            other => panic!("expected diagnostics: {other:?}"),
+        }
+    }
+    #[test]
+    fn missing_permissions_identify_each_operation() {
+        for permission in [
+            "Snapshot(catalog)",
+            "Infer(planner)",
+            "Explore(catalog)",
+            "Commit(catalog)",
+        ] {
+            let source = SOURCE
+                .replace(&format!("{permission}, "), "")
+                .replace(&format!(", {permission}"), "");
+            let diagnostics = errors(&source);
+            assert_eq!(diagnostics.len(), 1);
+            assert_eq!(diagnostics[0].code, "F3001");
+            assert!(diagnostics[0].message.contains(permission));
+        }
+    }
+    #[test]
+    fn invalid_effect_targets_are_not_authority() {
+        let diagnostics = errors(&SOURCE.replace("Infer(planner)", "Infer(catalog)"));
+        assert_eq!(
+            diagnostics
+                .iter()
+                .map(|d| d.code.as_str())
+                .collect::<Vec<_>>(),
+            vec!["F3202", "F3001"]
+        );
+    }
+    #[test]
+    fn branch_commit_preserves_reference_diagnostic_multiplicity() {
+        let diagnostics = errors(&SOURCE.replace(
+            "let after =",
+            "let bad = commit base to catalog; let after =",
+        ));
+        assert_eq!(diagnostics.iter().filter(|d| d.code == "F3102").count(), 2);
+        assert!(diagnostics.iter().any(|d| d.code == "F3107"));
+    }
+    #[test]
+    fn redundant_effects_do_not_change_type_analysis() {
+        let first = serde_json::to_value(check_effects(SOURCE).unwrap()).unwrap();
+        let reordered = SOURCE.replace("Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog)",
+            "Commit(catalog), Infer(planner), Snapshot(catalog), Explore(catalog), Snapshot(catalog)");
+        let second = serde_json::to_value(check_effects(&reordered).unwrap()).unwrap();
+        // Declaration text lengths change source locations but not inferred types.
+        let types = |v: &serde_json::Value| {
+            v["expressions"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|e| e["inferred_type"].clone())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(types(&first), types(&second));
     }
 }

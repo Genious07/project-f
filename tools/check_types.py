@@ -39,7 +39,7 @@ def walk(value):
             yield from walk(item)
 
 
-def reference(source):
+def reference(source, deferred=DEFERRED):
     try:
         program = parse(lex(source))
     except CompileFailure as failure:
@@ -50,7 +50,7 @@ def reference(source):
     except CompileFailure:
         pass
     declarations = [d for d in checker.diagnostics if d.code in DECLARATIONS]
-    errors = declarations or [d for d in checker.diagnostics if d.code not in DEFERRED]
+    errors = declarations or [d for d in checker.diagnostics if d.code not in deferred]
     diagnostics = [{'code': d.code, 'span': asdict(d.span)} for d in errors]
     if diagnostics:
         return diagnostics, []

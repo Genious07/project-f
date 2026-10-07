@@ -48,6 +48,8 @@ Acceptance: every expression in every accepted fixture has an inferred type, and
 
 ## Day 5: effect checking
 
+Status: completed on 7 October 2026. See [native effect checking](rust-effects.md). The 35 effect fixtures and 66 type regressions match Python under the effect stage.
+
 - Validate declared read, propose, simulate, and commit effects.
 - Reject undeclared capabilities and effects in forbidden branch contexts.
 - Keep method dispatch tied to the compiler signature registry.

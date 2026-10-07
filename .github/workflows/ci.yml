@@ -43,6 +43,7 @@ jobs:
       - run: python tools/check_frontends.py
       - run: python tools/check_declarations.py
       - run: python tools/check_types.py
+      - run: python tools/check_effects.py
   container:
     runs-on: ubuntu-latest
     steps:

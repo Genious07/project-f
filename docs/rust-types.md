@@ -1,5 +1,7 @@
 # Native Rust expression type analysis
 
+For the subsequent stage that also checks effect permissions and branch restrictions, see [native effect checking](rust-effects.md). The `types` command keeps the day 4 boundary described here.
+
 Milestone day 4 adds the `types` development command and `check_types(&str)` library entry point. They infer types without Python and return an inspection report. This stage does not emit executable typed IR or authorize target access.
 
 ```bash

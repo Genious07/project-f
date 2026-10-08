@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 6: resource and snapshot lineage
+
+Implemented on 8 October 2026.
+
+- Added native origin validation for exploration, simulation, resource method receivers, and branch-local state reads.
+- Preserved resource and snapshot identities through aliases, plans, trials, selections, and outcomes.
+- Added explicit staged checking and a separate branch resource context for accurate malformed-input recovery.
+- Added the non-executable `lineage` command, 30 origin fixtures, four Rust tests, and one Python corpus test.
+
+Local validation: 84 Python tests and 21 Rust unit tests pass. Native lineage comparisons cover 30 new cases plus 101 existing type/effect cases, alongside the earlier syntax and declaration checks. Ownership and simulation-count enforcement remain day 7 work.
+
+Next: day 7 selection ownership and branch rules.
+
 ## Rust milestone day 5: effect checking
 
 Implemented on 7 October 2026.

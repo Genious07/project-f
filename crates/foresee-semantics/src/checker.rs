@@ -7,9 +7,18 @@ use std::collections::{BTreeMap, BTreeSet};
 use TypeKind::*;
 
 type Env = BTreeMap<std::string::String, InferredType>;
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Stage {
+    Types,
+    Effects,
+    Lineage,
+}
+
 struct Checker<'a> {
     symbols: &'a DeclarationSymbols,
     effects_enabled: bool,
+    lineage_enabled: bool,
+    branch_resource: Option<ResourceRef>,
     used: BTreeSet<(std::string::String, std::string::String)>,
     errors: Vec<Diagnostic>,
     expressions: Vec<ExpressionType>,
@@ -21,11 +30,14 @@ struct Checker<'a> {
 pub(crate) fn check(
     program: BodyProgram,
     symbols: &DeclarationSymbols,
-    effects_enabled: bool,
+    stage: Stage,
 ) -> Result<TypeAnalysis, DeclarationFailure> {
+    let effects_enabled = stage != Stage::Types;
     let mut checker = Checker {
         symbols,
         effects_enabled,
+        lineage_enabled: stage == Stage::Lineage,
+        branch_resource: None,
         used: BTreeSet::new(),
         errors: vec![],
         expressions: vec![],
@@ -109,6 +121,17 @@ impl Checker<'_> {
     fn use_effect(&mut self, kind: &str, target: &str) {
         if self.effects_enabled {
             self.used.insert((kind.into(), target.into()));
+        }
+    }
+    fn same_origin(&mut self, left: &InferredType, right: &InferredType, span: &SourceSpan) {
+        if self.lineage_enabled
+            && (left.resource != right.resource || left.lineage != right.lineage)
+        {
+            self.error(
+                "F3301",
+                "values must belong to the same resource and snapshot",
+                span,
+            );
         }
     }
     fn resource(&self, name: &str) -> ResourceRef {
@@ -312,6 +335,7 @@ impl Checker<'_> {
                         base.resource.clone().expect("checked above")
                     };
                 self.use_effect("Explore", &resource.name(self.symbols));
+                self.same_origin(&plans, &base, &expr.span);
                 let mut local = env.clone();
                 if local.contains_key(item) || self.reserved(item) {
                     self.error(
@@ -329,6 +353,7 @@ impl Checker<'_> {
                         lineage: base.lineage,
                     },
                 );
+                let previous_resource = self.branch_resource.replace(resource.clone());
                 let previous = self.branch_base.replace(base.clone());
                 let mut metrics = Vec::new();
                 for statement in body {
@@ -341,6 +366,7 @@ impl Checker<'_> {
                     }
                 }
                 self.branch_base = previous;
+                self.branch_resource = previous_resource;
                 InferredType {
                     kind: Trials,
                     resource: Some(resource),
@@ -357,6 +383,18 @@ impl Checker<'_> {
                     self.error("F3103", "simulate is only valid inside explore", &expr.span);
                 }
                 let resource = self.resource(resource);
+                if self.lineage_enabled
+                    && self
+                        .branch_resource
+                        .as_ref()
+                        .is_some_and(|r| r != &resource)
+                {
+                    self.error(
+                        "F3104",
+                        "simulation resource must match the explore snapshot",
+                        &expr.span,
+                    );
+                }
                 if method != "apply" || matches!(resource, ResourceRef::Unresolved(_)) {
                     self.error(
                         "F3210",
@@ -364,7 +402,10 @@ impl Checker<'_> {
                         &expr.span,
                     );
                 }
-                self.arguments(args, &[&[Plan]], env, &expr.span);
+                let types = self.arguments(args, &[&[Plan]], env, &expr.span);
+                if let (Some(plan), Some(base)) = (types.first(), self.branch_base.clone()) {
+                    self.same_origin(plan, &base, &expr.span);
+                }
                 InferredType {
                     kind: Simulated,
                     resource: Some(resource),
@@ -385,7 +426,21 @@ impl Checker<'_> {
                     self.error("F3210", "unknown resource method", &expr.span);
                     return InferredType::scalar(Error);
                 }
-                self.arguments(args, expected, env, &expr.span);
+                let types = self.arguments(args, expected, env, &expr.span);
+                for arg in &types {
+                    if self.lineage_enabled && arg.resource.as_ref() != Some(&self.resource(target))
+                    {
+                        self.error(
+                            "F3301",
+                            "method argument belongs to a different resource",
+                            &expr.span,
+                        );
+                    }
+                    self.same_origin(arg, &types[0], &expr.span);
+                    if let Some(base) = self.branch_base.clone() {
+                        self.same_origin(arg, &base, &expr.span);
+                    }
+                }
                 InferredType::scalar(result)
             }
             ExprKind::Select { trials, metric } => {
@@ -569,5 +624,91 @@ mod effect_tests {
                 .collect::<Vec<_>>()
         };
         assert_eq!(types(&first), types(&second));
+    }
+}
+
+#[cfg(test)]
+mod lineage_tests {
+    use crate::{check_lineage, DeclarationFailure};
+    const SOURCE: &str = include_str!("../../../examples/repair.fore");
+    #[test]
+    fn every_resource_bearing_type_retains_origin_through_aliases() {
+        let source = SOURCE
+            .replace("let plans =", "let alias = base; let plans =")
+            .replace("from base", "from alias")
+            .replace(
+                "return commit chosen to catalog;",
+                "let copied = chosen; let result = commit copied to catalog; return result;",
+            );
+        let result = check_lineage(&source).unwrap();
+        for expression in result.expressions() {
+            let ty = &expression.inferred_type;
+            if ty.resource.is_some() {
+                assert_eq!(ty.resource.as_deref(), Some("catalog"));
+                assert_eq!(ty.lineage.as_deref(), Some("snapshot:1"));
+            }
+        }
+    }
+    #[test]
+    fn independent_snapshot_cannot_replace_proposal_origin() {
+        let source = SOURCE
+            .replace("let plans =", "let other = snapshot catalog; let plans =")
+            .replace("from base", "from other");
+        let Err(DeclarationFailure::Diagnostics(errors)) = check_lineage(&source) else {
+            panic!("expected rejection");
+        };
+        assert!(errors.iter().any(|e| e.code == "F3301"));
+    }
+    #[test]
+    fn unrelated_metric_rejected_even_when_type_is_correct() {
+        let source = SOURCE
+            .replace("let plans =", "let other = snapshot catalog; let plans =")
+            .replace("unresolved_units(after)", "unresolved_units(other)");
+        let Err(DeclarationFailure::Diagnostics(errors)) = check_lineage(&source) else {
+            panic!("expected rejection");
+        };
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0].code, "F3301");
+    }
+    #[test]
+    fn resource_identity_is_distinct_from_snapshot_identity() {
+        use super::*;
+        let symbols = crate::check_declarations(SOURCE).unwrap();
+        let mut checker = Checker {
+            symbols: &symbols,
+            effects_enabled: true,
+            lineage_enabled: true,
+            branch_resource: None,
+            errors: vec![],
+            expressions: vec![],
+            snapshot_count: 0,
+            node_count: 0,
+            branch_base: None,
+            used: BTreeSet::new(),
+        };
+        let left = InferredType {
+            kind: Snapshot,
+            resource: Some(ResourceRef::Known(crate::ResourceId(0))),
+            metric_names: vec![],
+            lineage: Some(1),
+        };
+        // Synthetic internal identities exercise nominal comparison independently
+        // of the public single-resource declaration gate.
+        let right = InferredType {
+            resource: Some(ResourceRef::Known(crate::ResourceId(1))),
+            ..left.clone()
+        };
+        checker.same_origin(
+            &left,
+            &right,
+            &SourceSpan {
+                start: 0,
+                end: 0,
+                line: 1,
+                column: 1,
+            },
+        );
+        assert_eq!(checker.errors.len(), 1);
+        assert_eq!(checker.errors[0].code, "F3301");
     }
 }

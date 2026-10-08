@@ -58,6 +58,8 @@ Acceptance: the Rust checker matches the reference effect decisions for the full
 
 ## Day 6: resource and snapshot lineage
 
+Status: completed on 8 October 2026. See [native lineage validation](rust-lineage.md). Thirty new origin cases and 101 earlier cases match Python under this stage.
+
 - Attach resource identity and snapshot lineage to resource-bearing values.
 - Reject cross-resource proposals, simulations, metrics, and selections.
 - Make lineage visible in semantic debug output.

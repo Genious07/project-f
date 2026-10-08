@@ -1,5 +1,7 @@
 # Native Rust effect checking
 
+The subsequent [lineage stage](rust-lineage.md) adds resource and snapshot validation. The `effects` command retains the boundary below.
+
 Milestone day 5 adds `foresee-semantics effects SOURCE` and `check_effects(&str)`. This combines declaration and type analysis with effect declarations, permission coverage, and exploration restrictions. The older `declarations` and `types` commands retain their narrower contracts.
 
 ```bash

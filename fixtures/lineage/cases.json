@@ -1,0 +1,271 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "name": "baseline origin chain",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": true,
+      "required_codes": [],
+      "counts": {}
+    },
+    {
+      "name": "unused independent snapshot",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": true,
+      "required_codes": [],
+      "counts": {}
+    },
+    {
+      "name": "snapshot alias",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let alias = base; let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from alias {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": true,
+      "required_codes": [],
+      "counts": {}
+    },
+    {
+      "name": "plan-set alias",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let copied = plans; let trials = explore plan in copied from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": true,
+      "required_codes": [],
+      "counts": {}
+    },
+    {
+      "name": "trial alias",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let copied = trials; let chosen = select copied minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": true,
+      "required_codes": [],
+      "counts": {}
+    },
+    {
+      "name": "selected alias",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    let copied = chosen; return commit copied to catalog;\n}\n",
+      "lineage_ok": true,
+      "required_codes": [],
+      "counts": {}
+    },
+    {
+      "name": "outcome retains origin",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    let result: DecisionResult = commit chosen to catalog; return result;\n}\n",
+      "lineage_ok": true,
+      "required_codes": [],
+      "counts": {}
+    },
+    {
+      "name": "plan base mismatch",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from other {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3301"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "aliased base mismatch",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let alias = other; let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from alias {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3301"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "proposal from wrong snapshot",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let plans = propose planner<Patch>(other, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3301"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "comparison mixed snapshots",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, other) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3301"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "metric unrelated snapshot",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(other);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3301"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "check unrelated snapshot",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(other) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3301"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "same unrelated arguments still fail branch origin",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(other, other) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3301"
+      ],
+      "counts": {
+        "F3301": 2
+      }
+    },
+    {
+      "name": "outside-branch comparison mixed snapshots",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let comparison = catalog.source_fields_unchanged(base, other); let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3301"
+      ],
+      "counts": {
+        "F3301": 1
+      }
+    },
+    {
+      "name": "outside-branch alias comparison",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let alias = base; let comparison = catalog.source_fields_unchanged(base, alias); let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": true,
+      "required_codes": [],
+      "counts": {}
+    },
+    {
+      "name": "wrong simulation receiver",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate missing.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3104",
+        "F3210"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "null argument origin",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(1) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3206",
+        "F3301"
+      ],
+      "counts": {
+        "F3301": 2
+      }
+    },
+    {
+      "name": "missing simulation arguments",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply();\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3206"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "invalid plan-set recovery receiver",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in base from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3101",
+        "F3104"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "invalid base recovery receiver",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from 1 {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3101",
+        "F3104",
+        "F3301"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "unknown snapshot resource",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot missing;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3005",
+        "F3104",
+        "F3301"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "second resource rejected at declaration gate",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nresource extra: Catalog; model planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3200"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "nested captured plan from foreign snapshot",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let inner = explore p in plans from other { let after_inner = simulate catalog.apply(plan); measure n: Int = catalog.unresolved_units(after_inner); }; let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3207",
+        "F3301"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "nested context restored",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let inner = explore p in propose planner<Patch>(other, \"inner\", 1) from other { let after_inner = simulate catalog.apply(p); measure n: Int = catalog.unresolved_units(after_inner); }; let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3207"
+      ],
+      "counts": {
+        "F3301": 0
+      }
+    },
+    {
+      "name": "wrong commit resource",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to missing;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3107"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "ownership still deferred",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from base {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    let first = commit chosen to catalog; return commit chosen to catalog;\n}\n",
+      "lineage_ok": true,
+      "required_codes": [],
+      "counts": {}
+    },
+    {
+      "name": "Unicode diagnostics",
+      "source": "// café 😀\n// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from other {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3301"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "CRLF diagnostics",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\r\nresource catalog: Catalog;\r\nmodel planner: Planner;\r\n\r\ndecision repair_catalog() -> DecisionResult\r\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\r\n    let base = snapshot catalog;\r\n    let other = snapshot catalog; let plans = propose planner<Patch>(base, \"Fill only derived unit prices\", 4);\r\n    let trials = explore plan in plans from other {\r\n        let after = simulate catalog.apply(plan);\r\n        check catalog.source_fields_unchanged(after, base) else \"Source fields changed\";\r\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\r\n        measure unresolved: Int = catalog.unresolved_units(after);\r\n    };\r\n    let chosen = select trials minimize unresolved;\r\n    return commit chosen to catalog;\r\n}\r\n",
+      "lineage_ok": false,
+      "required_codes": [
+        "F3301"
+      ],
+      "counts": {}
+    },
+    {
+      "name": "complete chain on second snapshot",
+      "source": "// A decision is a bounded experiment followed by one guarded effect.\nresource catalog: Catalog;\nmodel planner: Planner;\n\ndecision repair_catalog() -> DecisionResult\n! { Snapshot(catalog), Infer(planner), Explore(catalog), Commit(catalog) } {\n    let base = snapshot catalog;\n    let other = snapshot catalog; let plans = propose planner<Patch>(other, \"Fill only derived unit prices\", 4);\n    let trials = explore plan in plans from other {\n        let after = simulate catalog.apply(plan);\n        check catalog.source_fields_unchanged(after, other) else \"Source fields changed\";\n        check catalog.valid_unit_arithmetic(after) else \"Unit price arithmetic is invalid\";\n        measure unresolved: Int = catalog.unresolved_units(after);\n    };\n    let chosen = select trials minimize unresolved;\n    return commit chosen to catalog;\n}\n",
+      "lineage_ok": true,
+      "required_codes": [],
+      "counts": {}
+    }
+  ]
+}

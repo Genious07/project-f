@@ -232,7 +232,7 @@ pub fn check_types(source: &str) -> Result<types::TypeAnalysis, DeclarationFailu
     let syntax = foresee_syntax::parse(source).map_err(DeclarationFailure::Diagnostics)?;
     let program: ast::BodyProgram = serde_json::from_value(syntax)
         .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
-    checker::check(program, &symbols, false)
+    checker::check(program, &symbols, checker::Stage::Types)
 }
 
 /// Validate declared effects and branch restrictions in addition to types.
@@ -242,5 +242,15 @@ pub fn check_effects(source: &str) -> Result<types::TypeAnalysis, DeclarationFai
     let syntax = foresee_syntax::parse(source).map_err(DeclarationFailure::Diagnostics)?;
     let program: ast::BodyProgram = serde_json::from_value(syntax)
         .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
-    checker::check(program, &symbols, true)
+    checker::check(program, &symbols, checker::Stage::Effects)
+}
+
+/// Check resource and snapshot origins after declarations, types, and effects.
+/// Selection ownership and executable IR generation remain pending.
+pub fn check_lineage(source: &str) -> Result<types::TypeAnalysis, DeclarationFailure> {
+    let symbols = check_declarations(source)?;
+    let syntax = foresee_syntax::parse(source).map_err(DeclarationFailure::Diagnostics)?;
+    let program: ast::BodyProgram = serde_json::from_value(syntax)
+        .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
+    checker::check(program, &symbols, checker::Stage::Lineage)
 }

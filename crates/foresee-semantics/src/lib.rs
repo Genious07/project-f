@@ -254,3 +254,13 @@ pub fn check_lineage(source: &str) -> Result<types::TypeAnalysis, DeclarationFai
         .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
     checker::check(program, &symbols, checker::Stage::Lineage)
 }
+
+/// Check single-use selection capabilities and exactly one simulation per branch.
+/// Includes earlier stages; the returned analysis is not executable IR.
+pub fn check_ownership(source: &str) -> Result<types::TypeAnalysis, DeclarationFailure> {
+    let symbols = check_declarations(source)?;
+    let syntax = foresee_syntax::parse(source).map_err(DeclarationFailure::Diagnostics)?;
+    let program: ast::BodyProgram = serde_json::from_value(syntax)
+        .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
+    checker::check(program, &symbols, checker::Stage::Ownership)
+}

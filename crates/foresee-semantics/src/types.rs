@@ -59,12 +59,16 @@ impl ResourceRef {
         }
     }
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct SelectionId(pub usize);
+
 #[derive(Clone, Debug)]
 pub(crate) struct InferredType {
     pub kind: TypeKind,
     pub resource: Option<ResourceRef>,
     pub metric_names: Vec<String>,
     pub lineage: Option<usize>,
+    pub selection: Option<SelectionId>,
 }
 impl InferredType {
     pub fn scalar(kind: TypeKind) -> Self {
@@ -73,6 +77,7 @@ impl InferredType {
             resource: None,
             metric_names: vec![],
             lineage: None,
+            selection: None,
         }
     }
     pub fn derived(kind: TypeKind, origin: &Self) -> Self {
@@ -81,6 +86,7 @@ impl InferredType {
             resource: origin.resource.clone(),
             metric_names: vec![],
             lineage: origin.lineage,
+            selection: None,
         }
     }
     pub fn report(&self, symbols: &DeclarationSymbols) -> TypeDescription {

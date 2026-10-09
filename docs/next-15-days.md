@@ -68,6 +68,8 @@ Acceptance: mixed-lineage programs cannot produce typed IR, while valid aliases 
 
 ## Day 7: ownership and branch rules
 
+Status: completed on 9 October 2026. See [native ownership validation](rust-ownership.md). Twenty-eight new cases and 131 earlier cases match Python diagnostics and successful expression reports.
+
 - Track a selected value through aliases and consume it on commit.
 - Reject double use and forged selection paths.
 - Enforce exactly one simulation per branch and immutable branch inputs.

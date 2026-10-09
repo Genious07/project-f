@@ -1,14 +1,15 @@
 use foresee_semantics::{
-    check_declarations, check_effects, check_lineage, check_types, DeclarationFailure,
+    check_declarations, check_effects, check_lineage, check_ownership, check_types,
+    DeclarationFailure,
 };
 use serde_json::json;
 use std::{env, fs::File, io::Read, process};
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() != 3
-        || !["declarations", "types", "effects", "lineage"].contains(&args[1].as_str())
+        || !["declarations", "types", "effects", "lineage", "ownership"].contains(&args[1].as_str())
     {
-        eprintln!("usage: foresee-semantics <declarations|types|effects|lineage> SOURCE\nStaged checks only; use Python for complete semantic validation.");
+        eprintln!("usage: foresee-semantics <declarations|types|effects|lineage|ownership> SOURCE\nStaged checks only; use Python for complete semantic validation.");
         process::exit(2);
     }
     let mut bytes = Vec::new();
@@ -29,7 +30,9 @@ fn main() {
         }
     };
     let phase = &args[1];
-    let result = if phase == "lineage" {
+    let result = if phase == "ownership" {
+        check_ownership(&source).map(|analysis| json!({"ok":true,"checked_phase":phase,"executable":false,"expressions":analysis.expressions()}))
+    } else if phase == "lineage" {
         check_lineage(&source).map(|analysis| json!({"ok":true,"checked_phase":phase,"executable":false,"expressions":analysis.expressions()}))
     } else if phase == "effects" {
         check_effects(&source).map(|analysis| json!({"ok":true,"checked_phase":phase,"executable":false,"expressions":analysis.expressions()}))

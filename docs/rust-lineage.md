@@ -42,3 +42,5 @@ The lineage comparison also reruns all 35 effect and 66 type fixtures under the 
 Four Rust unit tests cover alias propagation through outcomes, independent snapshot rejection, unrelated metric rejection despite valid scalar type, and distinct nominal resources with equal snapshot IDs. Both hosted Rust jobs run the lineage comparison.
 
 This is a source development milestone, not a new published release. Day 7 implements affine selection consumption and branch simulation-count rules.
+
+The subsequent [ownership stage](rust-ownership.md) adds single-use selection and simulation-count checks while preserving this command’s narrower scope.

@@ -1,6 +1,8 @@
 use crate::ast::{BodyProgram, Expr, ExprKind, Statement, StatementKind};
 use crate::signatures;
-use crate::types::{ExpressionType, InferredType, ResourceRef, TypeAnalysis, TypeKind};
+use crate::types::{
+    ExpressionType, InferredType, ResourceRef, SelectionId, TypeAnalysis, TypeKind,
+};
 use crate::{error, DeclarationFailure, DeclarationSymbols, SourceSpan, SymbolId};
 use foresee_syntax::Diagnostic;
 use std::collections::{BTreeMap, BTreeSet};
@@ -12,12 +14,16 @@ pub(crate) enum Stage {
     Types,
     Effects,
     Lineage,
+    Ownership,
 }
 
 struct Checker<'a> {
     symbols: &'a DeclarationSymbols,
     effects_enabled: bool,
     lineage_enabled: bool,
+    ownership_enabled: bool,
+    selection_count: usize,
+    consumed: BTreeSet<SelectionId>,
     branch_resource: Option<ResourceRef>,
     used: BTreeSet<(std::string::String, std::string::String)>,
     errors: Vec<Diagnostic>,
@@ -36,7 +42,10 @@ pub(crate) fn check(
     let mut checker = Checker {
         symbols,
         effects_enabled,
-        lineage_enabled: stage == Stage::Lineage,
+        lineage_enabled: matches!(stage, Stage::Lineage | Stage::Ownership),
+        ownership_enabled: stage == Stage::Ownership,
+        selection_count: 0,
+        consumed: BTreeSet::new(),
         branch_resource: None,
         used: BTreeSet::new(),
         errors: vec![],
@@ -269,10 +278,18 @@ impl Checker<'_> {
                 InferredType::scalar(String)
             }
             ExprKind::Int { .. } => InferredType::scalar(Int),
-            ExprKind::Var { name } => env.get(name).cloned().unwrap_or_else(|| {
-                self.error("F3004", "unknown binding", &expr.span);
-                InferredType::scalar(Error)
-            }),
+            ExprKind::Var { name } => {
+                let ty = env.get(name).cloned().unwrap_or_else(|| {
+                    self.error("F3004", "unknown binding", &expr.span);
+                    InferredType::scalar(Error)
+                });
+                if self.ownership_enabled
+                    && ty.selection.is_some_and(|id| self.consumed.contains(&id))
+                {
+                    self.error("F3400", "selection has already been consumed", &expr.span);
+                }
+                ty
+            }
             ExprKind::Snapshot { resource } => {
                 let reference = self.resource(resource);
                 if matches!(reference, ResourceRef::Unresolved(_)) {
@@ -285,6 +302,7 @@ impl Checker<'_> {
                     resource: Some(reference),
                     metric_names: vec![],
                     lineage: Some(self.snapshot_count),
+                    selection: None,
                 }
             }
             ExprKind::Propose {
@@ -321,6 +339,15 @@ impl Checker<'_> {
                 base,
                 body,
             } => {
+                if self.ownership_enabled
+                    && body.iter().map(simulations_in_statement).sum::<usize>() != 1
+                {
+                    self.error(
+                        "F3401",
+                        "explore requires exactly one simulation per branch",
+                        &expr.span,
+                    );
+                }
                 let plans = self.expr(plans, env);
                 let base = self.expr(base, env);
                 let resource =
@@ -351,6 +378,7 @@ impl Checker<'_> {
                         resource: Some(resource.clone()),
                         metric_names: vec![],
                         lineage: base.lineage,
+                        selection: None,
                     },
                 );
                 let previous_resource = self.branch_resource.replace(resource.clone());
@@ -372,6 +400,7 @@ impl Checker<'_> {
                     resource: Some(resource),
                     metric_names: metrics,
                     lineage: base.lineage,
+                    selection: None,
                 }
             }
             ExprKind::Simulate {
@@ -411,6 +440,7 @@ impl Checker<'_> {
                     resource: Some(resource),
                     metric_names: vec![],
                     lineage: self.branch_base.as_ref().and_then(|b| b.lineage),
+                    selection: None,
                 }
             }
             ExprKind::Call {
@@ -454,7 +484,10 @@ impl Checker<'_> {
                         &expr.span,
                     );
                 }
-                InferredType::derived(Selected, &trials)
+                self.selection_count += 1;
+                let mut selected = InferredType::derived(Selected, &trials);
+                selected.selection = Some(SelectionId(self.selection_count));
+                selected
             }
             ExprKind::Commit { selected, resource } => {
                 if self.effects_enabled && self.branch_base.is_some() {
@@ -465,6 +498,11 @@ impl Checker<'_> {
                     );
                 }
                 let selected = self.expr(selected, env);
+                if self.ownership_enabled {
+                    if let Some(id) = selected.selection {
+                        self.consumed.insert(id);
+                    }
+                }
                 let resource = self.resource(resource);
                 if selected.kind != Selected || selected.resource.as_ref() != Some(&resource) {
                     self.error(
@@ -479,9 +517,43 @@ impl Checker<'_> {
                     resource: Some(resource),
                     metric_names: vec![],
                     lineage: selected.lineage,
+                    selection: None,
                 }
             }
         }
+    }
+}
+
+// Count syntax, including arguments whose type checking may stop at an invalid
+// receiver. This mirrors the branch contract independently of error recovery.
+fn simulations_in_statement(statement: &Statement) -> usize {
+    let expr = match &statement.kind {
+        StatementKind::Let { value, .. }
+        | StatementKind::Return { value }
+        | StatementKind::Measure { value, .. } => value,
+        StatementKind::Check { condition, .. } => condition,
+    };
+    simulations_in_expr(expr)
+}
+fn simulations_in_expr(expr: &Expr) -> usize {
+    match &expr.kind {
+        ExprKind::Simulate { args, .. } => 1 + args.iter().map(simulations_in_expr).sum::<usize>(),
+        ExprKind::Call { args, .. } | ExprKind::Propose { args, .. } => {
+            args.iter().map(simulations_in_expr).sum()
+        }
+        ExprKind::Explore {
+            plans, base, body, ..
+        } => {
+            simulations_in_expr(plans)
+                + simulations_in_expr(base)
+                + body.iter().map(simulations_in_statement).sum::<usize>()
+        }
+        ExprKind::Select { trials, .. } => simulations_in_expr(trials),
+        ExprKind::Commit { selected, .. } => simulations_in_expr(selected),
+        ExprKind::String { .. }
+        | ExprKind::Int { .. }
+        | ExprKind::Var { .. }
+        | ExprKind::Snapshot { .. } => 0,
     }
 }
 
@@ -678,6 +750,9 @@ mod lineage_tests {
             symbols: &symbols,
             effects_enabled: true,
             lineage_enabled: true,
+            ownership_enabled: false,
+            selection_count: 0,
+            consumed: BTreeSet::new(),
             branch_resource: None,
             errors: vec![],
             expressions: vec![],
@@ -691,6 +766,7 @@ mod lineage_tests {
             resource: Some(ResourceRef::Known(crate::ResourceId(0))),
             metric_names: vec![],
             lineage: Some(1),
+            selection: None,
         };
         // Synthetic internal identities exercise nominal comparison independently
         // of the public single-resource declaration gate.
@@ -710,5 +786,44 @@ mod lineage_tests {
         );
         assert_eq!(checker.errors.len(), 1);
         assert_eq!(checker.errors[0].code, "F3301");
+    }
+}
+
+#[cfg(test)]
+mod ownership_tests {
+    use crate::{check_lineage, check_ownership, DeclarationFailure};
+    const SOURCE: &str = include_str!("../../../examples/repair.fore");
+    fn codes(source: &str) -> Vec<String> {
+        let Err(DeclarationFailure::Diagnostics(errors)) = check_ownership(source) else {
+            panic!("expected rejection")
+        };
+        errors.into_iter().map(|e| e.code).collect()
+    }
+    #[test]
+    fn aliases_share_consumption_but_lineage_stage_stays_unchanged() {
+        let source = SOURCE.replace(
+            "return commit chosen",
+            "let alias = chosen; let first = commit alias to catalog; return commit chosen",
+        );
+        assert_eq!(codes(&source), ["F3400"]);
+        assert!(check_lineage(&source).is_ok());
+    }
+    #[test]
+    fn independent_selections_and_outcome_aliases_are_allowed() {
+        let source = SOURCE.replace("return commit chosen to catalog;", "let second = select trials minimize unresolved; let first = commit chosen to catalog; let result = commit second to catalog; let alias = result; return alias;");
+        assert!(check_ownership(&source).is_ok());
+    }
+    #[test]
+    fn simulation_count_is_syntactic_even_for_unknown_calls() {
+        let source = SOURCE.replace(
+            "catalog.valid_unit_arithmetic(after)",
+            "catalog.unknown(simulate catalog.apply(plan))",
+        );
+        assert_eq!(codes(&source), ["F3401", "F3210", "F3205"]);
+    }
+    #[test]
+    fn zero_simulations_is_rejected() {
+        let source = SOURCE.replace("simulate catalog.apply(plan)", "base");
+        assert!(codes(&source).contains(&"F3401".into()));
     }
 }

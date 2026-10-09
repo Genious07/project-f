@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 7: selection ownership and branch rules
+
+Implemented on 9 October 2026.
+
+- Added explicit selection identities shared through aliases and consumed by commit.
+- Reject subsequent reads through any alias, including during recovery from an invalid commit. Independent selections retain separate identities.
+- Count simulation syntax across each exploration body, including nested arguments and invalid calls, and require exactly one simulation.
+- Added the non-executable `ownership` command, 28 shared fixtures, four Rust tests, one Python corpus test, and hosted differential checks. Earlier staged checks retain their behavior.
+
+Local validation: 85 Python tests and 25 Rust unit tests pass. Ownership comparisons cover 28 new cases plus 131 earlier cases with matching diagnostic codes, order, source spans, and successful expression reports. Earlier syntax, declaration, type, effect, and lineage comparisons also pass.
+
+Next: day 8 native typed IR lowering. Execution and runtime selection consumption remain in Python.
+
 ## Rust milestone day 6: resource and snapshot lineage
 
 Implemented on 8 October 2026.

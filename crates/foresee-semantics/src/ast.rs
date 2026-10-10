@@ -4,10 +4,13 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub(crate) struct BodyProgram {
+    pub resources: Vec<crate::TypedDeclaration>,
+    pub models: Vec<crate::TypedDeclaration>,
     pub decisions: Vec<Decision>,
 }
 #[derive(Deserialize)]
 pub(crate) struct Decision {
+    pub name: String,
     pub effects: Vec<(String, String)>,
     pub body: Vec<Statement>,
     pub span: SourceSpan,

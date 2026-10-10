@@ -78,6 +78,8 @@ Acceptance: ownership and branch fixtures match Python behavior, including the l
 
 ## Day 8: native typed IR lowering
 
+Status: completed on 10 October 2026. See [native typed IR lowering](rust-ir.md). Twenty-three new cases and 159 regressions compare native output with Python; digest generation remains day 9.
+
 - Emit every supported declaration, statement, expression type, effect, and lineage record.
 - Keep source-only annotations and spans outside executable identity.
 - Validate generated documents against typed IR schema 0.0.3.

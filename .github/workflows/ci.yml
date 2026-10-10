@@ -46,6 +46,7 @@ jobs:
       - run: python tools/check_effects.py
       - run: python tools/check_lineage.py
       - run: python tools/check_ownership.py
+      - run: python tools/check_ir.py
   container:
     runs-on: ubuntu-latest
     steps:

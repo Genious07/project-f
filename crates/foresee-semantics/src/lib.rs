@@ -1,6 +1,7 @@
 //! Staged declaration and type analysis. Success does not authorize execution.
 mod ast;
 mod checker;
+pub mod ir;
 mod signatures;
 pub mod types;
 use foresee_syntax::{Diagnostic, Span};
@@ -232,7 +233,7 @@ pub fn check_types(source: &str) -> Result<types::TypeAnalysis, DeclarationFailu
     let syntax = foresee_syntax::parse(source).map_err(DeclarationFailure::Diagnostics)?;
     let program: ast::BodyProgram = serde_json::from_value(syntax)
         .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
-    checker::check(program, &symbols, checker::Stage::Types)
+    checker::check(&program, &symbols, checker::Stage::Types)
 }
 
 /// Validate declared effects and branch restrictions in addition to types.
@@ -242,7 +243,7 @@ pub fn check_effects(source: &str) -> Result<types::TypeAnalysis, DeclarationFai
     let syntax = foresee_syntax::parse(source).map_err(DeclarationFailure::Diagnostics)?;
     let program: ast::BodyProgram = serde_json::from_value(syntax)
         .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
-    checker::check(program, &symbols, checker::Stage::Effects)
+    checker::check(&program, &symbols, checker::Stage::Effects)
 }
 
 /// Check resource and snapshot origins after declarations, types, and effects.
@@ -252,7 +253,7 @@ pub fn check_lineage(source: &str) -> Result<types::TypeAnalysis, DeclarationFai
     let syntax = foresee_syntax::parse(source).map_err(DeclarationFailure::Diagnostics)?;
     let program: ast::BodyProgram = serde_json::from_value(syntax)
         .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
-    checker::check(program, &symbols, checker::Stage::Lineage)
+    checker::check(&program, &symbols, checker::Stage::Lineage)
 }
 
 /// Check single-use selection capabilities and exactly one simulation per branch.
@@ -262,5 +263,5 @@ pub fn check_ownership(source: &str) -> Result<types::TypeAnalysis, DeclarationF
     let syntax = foresee_syntax::parse(source).map_err(DeclarationFailure::Diagnostics)?;
     let program: ast::BodyProgram = serde_json::from_value(syntax)
         .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
-    checker::check(program, &symbols, checker::Stage::Ownership)
+    checker::check(&program, &symbols, checker::Stage::Ownership)
 }

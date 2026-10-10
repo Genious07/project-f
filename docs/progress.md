@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 8: native typed IR lowering
+
+Implemented on 10 October 2026.
+
+- Added a private checked-program boundary and native lowering of every supported declaration, statement, and expression into the schema 0.0.3 body.
+- Preserved inferred types, snapshot lineage, argument and statement ordering, and arbitrary-size integers. Sorted and deduplicated effects; excluded spans, annotations, and internal identities.
+- Added the non-executable `ir` command and a structural wire-contract validator. Rejected source cannot emit IR, and inconsistent internal type tables produce contract errors.
+- Added 23 IR fixtures, four Rust tests, three Python tests, and hosted native IR comparisons across 159 earlier cases.
+
+Local validation: 88 Python tests and 29 Rust unit tests pass, together with all seven differential runners. IR comparisons match Python after JSON normalization and removal of its digest field. Canonical bytes, program digests, and native execution are not part of this milestone.
+
+Next: day 9 canonical serialization and program digests.
+
 ## Rust milestone day 7: selection ownership and branch rules
 
 Implemented on 9 October 2026.

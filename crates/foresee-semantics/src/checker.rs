@@ -34,7 +34,7 @@ struct Checker<'a> {
 }
 
 pub(crate) fn check(
-    program: BodyProgram,
+    program: &BodyProgram,
     symbols: &DeclarationSymbols,
     stage: Stage,
 ) -> Result<TypeAnalysis, DeclarationFailure> {
@@ -54,7 +54,7 @@ pub(crate) fn check(
         node_count: 0,
         branch_base: None,
     };
-    for decision in program.decisions {
+    for decision in &program.decisions {
         checker.used.clear();
         let declared: BTreeSet<_> = decision.effects.iter().cloned().collect();
         if effects_enabled {

@@ -28,3 +28,5 @@ Decision effects are deduplicated and sorted by kind and target. Source annotati
 Coverage includes all source expression and statement forms, ordered metrics, multiple explorations and snapshots, symbol renaming, annotations, redundant effects, Unicode and escaped strings, huge integers, leading zeros, and errors from every semantic stage. Rust tests protect the checked boundary and reject inconsistent type tables. Python mutation tests verify that malformed wire documents fail structural validation.
 
 Earlier staged commands remain unchanged. This milestone establishes structural IR parity for the tested shared subset. It does not establish canonical byte or digest parity, execute native effects, or change the published alpha release.
+
+The subsequent [identity stage](rust-identity.md) now adds canonical serialization and digests; the `ir` command retains the digest-free contract described above.

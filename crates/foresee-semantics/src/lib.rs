@@ -1,5 +1,6 @@
 //! Staged declaration and type analysis. Success does not authorize execution.
 mod ast;
+pub mod canonical;
 mod checker;
 pub mod ir;
 mod signatures;

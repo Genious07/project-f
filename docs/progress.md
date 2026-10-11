@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 9: canonical identity
+
+Implemented on 11 October 2026.
+
+- Added Python-compatible ASCII canonical JSON with recursively sorted keys, preserved array order, control escapes, surrogate pairs, and arbitrary-size integers.
+- Added SHA-256 program digests through a locked `sha2` dependency, hashing the checked IR body before inserting the digest.
+- Added the `identity` development command and a checked library artifact containing complete IR plus a read-only canonical preimage. Earlier stages remain unchanged.
+- Added 27 frozen canonical-byte/digest fixtures, five Rust tests, three Python tests, and hosted identity comparisons across 182 earlier cases.
+
+Local validation: 91 Python tests and 34 Rust unit tests pass, together with all eight comparison runners. Identity comparisons verify exact bytes and complete IR for accepted source, with exact diagnostic codes and spans and no artifact for rejected source. Native execution remains pending.
+
+Next: day 10 consolidated differential compiler harness and deterministic generated programs.
+
 ## Rust milestone day 8: native typed IR lowering
 
 Implemented on 10 October 2026.

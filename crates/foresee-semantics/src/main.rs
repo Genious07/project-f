@@ -14,10 +14,11 @@ fn main() {
             "lineage",
             "ownership",
             "ir",
+            "identity",
         ]
         .contains(&args[1].as_str())
     {
-        eprintln!("usage: foresee-semantics <declarations|types|effects|lineage|ownership|ir> SOURCE\nStaged checks only; use Python for complete semantic validation.");
+        eprintln!("usage: foresee-semantics <declarations|types|effects|lineage|ownership|ir|identity> SOURCE\nDevelopment compiler commands; execution remains in Python.");
         process::exit(2);
     }
     let mut bytes = Vec::new();
@@ -38,7 +39,9 @@ fn main() {
         }
     };
     let phase = &args[1];
-    let result = if phase == "ir" {
+    let result = if phase == "identity" {
+        foresee_semantics::canonical::compile_source(&source).map(|program| json!({"ok":true,"checked_phase":phase,"executable":false,"canonical_json":program.canonical_json(),"ir":program}))
+    } else if phase == "ir" {
         foresee_semantics::ir::lower_source(&source)
             .map(|ir| json!({"ok":true,"checked_phase":phase,"executable":false,"ir":ir}))
     } else if phase == "ownership" {

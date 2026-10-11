@@ -1,4 +1,4 @@
-//! Checked IR body for schema 0.0.3. Canonical digest generation is a later stage.
+//! Checked IR body for schema 0.0.3. See `canonical` for complete program identity.
 use crate::ast::{BodyProgram, Expr, ExprKind, Statement, StatementKind};
 use crate::types::{ExpressionType, TypeAnalysis, TypeKind};
 use crate::{checker, DeclarationFailure};
@@ -10,7 +10,7 @@ use std::collections::BTreeSet;
 /// yet and is not an execution capability. No external AST/IR ingestion is exposed.
 #[derive(Debug, Serialize)]
 #[serde(transparent)]
-pub struct IrBody(Value);
+pub struct IrBody(pub(crate) Value);
 
 struct CheckedProgram {
     program: BodyProgram,

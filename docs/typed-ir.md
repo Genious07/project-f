@@ -42,4 +42,4 @@ Schema versions must change when IR shape or interpretation changes. The new pro
 
 ## Native compiler progress
 
-The [Rust IR stage](rust-ir.md) emits the checked 0.0.3 body without a digest. Canonical identity remains the next native milestone; use Python for complete runtime artifacts.
+The [Rust IR stage](rust-ir.md) emits the checked 0.0.3 body without a digest. The subsequent [native identity stage](rust-identity.md) emits complete IR with matching canonical digests. Execution remains in Python.

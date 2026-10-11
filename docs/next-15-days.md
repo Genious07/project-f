@@ -88,6 +88,8 @@ Acceptance: accepted shared programs produce structurally equivalent Python and 
 
 ## Day 9: canonical identity
 
+Status: completed on 11 October 2026. See [native canonical identity](rust-identity.md). Twenty-seven frozen identity cases and 182 earlier cases match Python canonical bytes, digests, complete IR, or rejection diagnostics.
+
 - Implement canonical serialization and program digest generation in Rust.
 - Test formatting, comment, line-ending, map-order, and effect-order stability.
 - Document which semantic edits must change identity.

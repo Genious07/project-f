@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "name": "consumed_alias_read",
+      "source": "resource c: Catalog; model m: Planner; decision d() ! { Snapshot(c), Infer(m), Explore(c), Commit(c) } { let b = snapshot c; let p = propose m<Patch>(b, \"x\", 1); let t = explore x in p from b { let s = simulate c.apply(x); measure n: Int = c.unresolved_units(s); }; let a = select t minimize n; let alias = a; let done = commit a to c; return commit alias to c; }",
+      "expected_ok": false,
+      "required_code": "F3400"
+    },
+    {
+      "name": "simulation_inside_unknown_call",
+      "source": "resource c: Catalog; model m: Planner; decision d() ! { Snapshot(c), Infer(m), Explore(c), Commit(c) } { let b = snapshot c; let p = propose m<Patch>(b, \"x\", 1); let t = explore x in p from b { let s = simulate c.apply(x); check c.absent(simulate c.apply(x)) else \"bad\"; measure n: Int = c.unresolved_units(s); }; let a = select t minimize n; return commit a to c; }",
+      "expected_ok": false,
+      "required_code": "F3401"
+    }
+  ]
+}

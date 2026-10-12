@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 10: differential compiler harness
+
+Implemented on 12 October 2026.
+
+- Added one end-to-end runner comparing lexing, parsing, full semantic diagnostics, successful expression types, complete IR, canonical bytes, and digests.
+- Deduplicated the shared source corpus while retaining fixture labels, and added seeded bounded generation with eight semantic-error families.
+- Added failure evidence, source replay, bounded optional reduction, machine-readable summaries, and hosted result artifacts.
+- Added two hand-reduced regressions for known ownership and simulation-count rules, plus seven tests that exercise generation and deliberately broken compiler responses. No new compiler mismatch was found.
+
+Local validation: 98 Python tests and 34 Rust unit tests pass. The default seed checks 354 cases (124 accepted, 230 rejected); seed 451 with 256 generated pairs checks 738 cases (316 accepted, 422 rejected). Both complete with zero differences. The reference comparison retains the documented native declaration gate and shared syntax limits.
+
+Next: day 11 hostile-input limits and fuzz hardening.
+
 ## Rust milestone day 9: canonical identity
 
 Implemented on 11 October 2026.

@@ -98,6 +98,8 @@ Acceptance: Rust and Python generate identical digests for every shared valid pr
 
 ## Day 10: differential compiler harness
 
+Status: completed on 12 October 2026. See [compiler conformance](compiler-conformance.md). The default run checks 354 cases; an expanded second-seed run checks 738. Both report zero differences.
+
 - Run both compilers over the shared corpus and compare acceptance, diagnostics, types, IR, and digests.
 - Store minimized regressions as permanent fixtures.
 - Add deterministic randomized programs within the supported grammar.

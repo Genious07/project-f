@@ -108,6 +108,8 @@ Acceptance: the harness reports zero unexplained differences and runs in hosted 
 
 ## Day 11: hostile input hardening
 
+Status: completed on 13 October 2026. See [compiler resource limits](compiler-limits.md). Default and expanded smoke campaigns completed 1,252 and 4,324 native invocations without failures; existing conformance checks remain green.
+
 - Bound file size, nesting, collection growth, diagnostic count, and serialization depth.
 - Fuzz lexer, parser, semantic checker, and IR serializer.
 - Ensure malformed input cannot panic the compiler process.

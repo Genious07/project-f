@@ -30,6 +30,14 @@ pub fn compile_source(source: &str) -> Result<CompiledProgram, DeclarationFailur
 }
 
 fn encode(value: &Value, out: &mut String) -> Result<(), DeclarationFailure> {
+    encode_inner(value, out, 0)
+}
+fn encode_inner(value: &Value, out: &mut String, depth: usize) -> Result<(), DeclarationFailure> {
+    if depth > foresee_syntax::limits::MAX_JSON_DEPTH {
+        return Err(DeclarationFailure::FrontendContract(
+            "canonical nesting limit exceeded".into(),
+        ));
+    }
     match value {
         Value::Null => out.push_str("null"),
         Value::Bool(value) => out.push_str(if *value { "true" } else { "false" }),
@@ -51,7 +59,7 @@ fn encode(value: &Value, out: &mut String) -> Result<(), DeclarationFailure> {
                 if index > 0 {
                     out.push(',');
                 }
-                encode(value, out)?;
+                encode_inner(value, out, depth + 1)?;
             }
             out.push(']');
         }
@@ -67,7 +75,7 @@ fn encode(value: &Value, out: &mut String) -> Result<(), DeclarationFailure> {
                 }
                 string(key, out);
                 out.push(':');
-                encode(value, out)?;
+                encode_inner(value, out, depth + 1)?;
             }
             out.push('}');
         }
@@ -137,6 +145,16 @@ mod tests {
             compile_source(&source.replace("let base =", "let b = 2; let a = 1; let base ="))
                 .unwrap();
         assert_ne!(left.ir["program_digest"], right.ir["program_digest"]);
+    }
+    #[test]
+    fn canonical_depth_has_an_explicit_budget() {
+        let mut value = Value::Null;
+        for _ in 0..foresee_syntax::limits::MAX_JSON_DEPTH {
+            value = Value::Array(vec![value]);
+        }
+        assert!(encode(&value, &mut String::new()).is_ok());
+        value = Value::Array(vec![value]);
+        assert!(encode(&value, &mut String::new()).is_err());
     }
     #[test]
     fn sha256_uses_standard_known_vector() {

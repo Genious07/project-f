@@ -1,4 +1,6 @@
 //! Syntax-only frontend. Type/effect/ownership checking remains in Python.
+pub mod limits;
+use limits::*;
 use serde::Serialize;
 use serde_json::{json, Value};
 
@@ -33,11 +35,27 @@ fn diagnostic(code: &str, message: &str, span: Span) -> Diagnostic {
 }
 
 pub fn lex(source: &str) -> Result<Vec<Token>, Vec<Diagnostic>> {
+    if source.len() > MAX_SOURCE_BYTES {
+        return Err(vec![diagnostic(
+            "F0001",
+            "source byte limit exceeded",
+            Span {
+                start: 0,
+                end: 0,
+                line: 1,
+                column: 1,
+            },
+        )]);
+    }
     let chars: Vec<char> = source.chars().collect();
     let (mut i, mut line, mut column) = (0, 1, 1);
     let mut tokens = Vec::new();
     let mut errors = Vec::new();
     while i < chars.len() {
+        if errors.len() >= MAX_DIAGNOSTICS {
+            cap_errors(&mut errors);
+            return Err(errors);
+        }
         let ch = chars[i];
         if " \t\r".contains(ch) {
             i += 1;
@@ -95,6 +113,17 @@ pub fn lex(source: &str) -> Result<Vec<Token>, Vec<Diagnostic>> {
             let mut text = String::new();
             let mut closed = false;
             while i < chars.len() {
+                if errors.len() >= MAX_DIAGNOSTICS {
+                    cap_errors(&mut errors);
+                    return Err(errors);
+                }
+                if text.len() > MAX_STRING_BYTES {
+                    return Err(vec![diagnostic(
+                        "F0001",
+                        "string byte limit exceeded",
+                        span(i),
+                    )]);
+                }
                 let current = chars[i];
                 if current == '"' {
                     i += 1;
@@ -142,6 +171,31 @@ pub fn lex(source: &str) -> Result<Vec<Token>, Vec<Diagnostic>> {
                 "unexpected character (identifiers and numeric literals are ASCII in this frontend)", span(i)));
             continue;
         }
+        let limit = match kind.as_str() {
+            "IDENT" => MAX_IDENTIFIER_BYTES,
+            "INT" => MAX_INTEGER_DIGITS,
+            "STRING" => MAX_STRING_BYTES,
+            _ => MAX_STRING_BYTES,
+        };
+        if value.len() > limit {
+            return Err(vec![diagnostic(
+                "F0001",
+                "token value limit exceeded",
+                span(i),
+            )]);
+        }
+        if tokens.len() >= MAX_TOKENS {
+            return Err(vec![diagnostic(
+                "F0001",
+                "token limit exceeded",
+                Span {
+                    start: i,
+                    end: i,
+                    line,
+                    column,
+                },
+            )]);
+        }
         tokens.push(Token {
             kind,
             value,
@@ -161,7 +215,17 @@ pub fn lex(source: &str) -> Result<Vec<Token>, Vec<Diagnostic>> {
     if errors.is_empty() {
         Ok(tokens)
     } else {
+        if errors.len() >= MAX_DIAGNOSTICS {
+            cap_errors(&mut errors);
+        }
         Err(errors)
+    }
+}
+
+fn cap_errors(errors: &mut Vec<Diagnostic>) {
+    errors.truncate(MAX_DIAGNOSTICS);
+    if let Some(last) = errors.last_mut() {
+        *last = diagnostic("F0002", "diagnostic limit reached", last.span.clone());
     }
 }
 
@@ -173,6 +237,17 @@ struct Parser {
 type Parsed = Result<Value, Diagnostic>;
 
 impl Parser {
+    fn collection(&self, length: usize) -> Result<(), Diagnostic> {
+        if length >= MAX_COLLECTION_ITEMS {
+            Err(diagnostic(
+                "F0001",
+                "collection item limit exceeded",
+                self.current().span.clone(),
+            ))
+        } else {
+            Ok(())
+        }
+    }
     fn current(&self) -> &Token {
         &self.tokens[self.index]
     }
@@ -214,6 +289,7 @@ impl Parser {
     fn program(&mut self) -> Parsed {
         let (mut resources, mut models, mut decisions) = (Vec::new(), Vec::new(), Vec::new());
         while self.current().kind != "EOF" {
+            self.collection(resources.len() + models.len() + decisions.len())?;
             let span = self.current().span.clone();
             if self.current().value == "resource" || self.current().value == "model" {
                 let kind = self.take().value;
@@ -238,6 +314,7 @@ impl Parser {
                 self.expect("{")?;
                 let mut effects = Vec::new();
                 while self.current().value != "}" {
+                    self.collection(effects.len())?;
                     let kind = self.name()?;
                     self.expect("(")?;
                     let target = self.name()?;
@@ -264,6 +341,7 @@ impl Parser {
             if self.current().kind == "EOF" {
                 return Err(self.error("unterminated block"));
             }
+            self.collection(statements.len())?;
             statements.push(self.statement()?);
         }
         Ok(json!(statements))
@@ -314,6 +392,7 @@ impl Parser {
         let mut args = Vec::new();
         if self.current().value != ")" {
             loop {
+                self.collection(args.len())?;
                 args.push(self.expr()?);
                 if !self.eat(",") {
                     break;
@@ -324,7 +403,7 @@ impl Parser {
         Ok(json!(args))
     }
     fn expr(&mut self) -> Parsed {
-        if self.depth >= 128 {
+        if self.depth >= MAX_EXPRESSION_DEPTH {
             return Err(diagnostic(
                 "F2002",
                 "expression nesting limit exceeded",
@@ -446,5 +525,71 @@ mod tests {
             " minimize m".repeat(140)
         );
         assert_eq!(parse(&source).unwrap_err()[0].code, "F2002");
+    }
+}
+
+#[cfg(test)]
+mod limit_tests {
+    use super::*;
+    #[test]
+    fn source_and_token_boundaries() {
+        assert!(lex(&" ".repeat(MAX_SOURCE_BYTES)).is_ok());
+        assert_eq!(
+            lex(&" ".repeat(MAX_SOURCE_BYTES + 1)).unwrap_err()[0].code,
+            "F0001"
+        );
+        assert!(lex(&"x ".repeat(MAX_TOKENS)).is_ok());
+        assert_eq!(
+            lex(&"x ".repeat(MAX_TOKENS + 1)).unwrap_err()[0].code,
+            "F0001"
+        );
+    }
+    #[test]
+    fn token_value_boundaries() {
+        for (prefix, length, suffix) in [
+            ("", MAX_IDENTIFIER_BYTES, ""),
+            ("", MAX_INTEGER_DIGITS, ""),
+            ("\"", MAX_STRING_BYTES, "\""),
+        ] {
+            let ch = if length == MAX_INTEGER_DIGITS {
+                "9"
+            } else {
+                "a"
+            };
+            assert!(lex(&format!("{prefix}{}{suffix}", ch.repeat(length))).is_ok());
+            assert_eq!(
+                lex(&format!("{prefix}{}{suffix}", ch.repeat(length + 1))).unwrap_err()[0].code,
+                "F0001"
+            );
+        }
+    }
+    #[test]
+    fn diagnostic_floods_are_capped_even_inside_strings() {
+        for source in ["@".repeat(10000), format!("\"{}\"", "\\q".repeat(10000))] {
+            let errors = lex(&source).unwrap_err();
+            assert_eq!(errors.len(), MAX_DIAGNOSTICS);
+            assert_eq!(errors.last().unwrap().code, "F0002");
+        }
+    }
+    #[test]
+    fn collection_and_depth_boundaries() {
+        let source = |n| format!("decision d() ! {{}} {{ {} }}", "let a = 1;".repeat(n));
+        assert!(parse(&source(MAX_COLLECTION_ITEMS)).is_ok());
+        assert_eq!(
+            parse(&source(MAX_COLLECTION_ITEMS + 1)).unwrap_err()[0].code,
+            "F0001"
+        );
+        let nested = |n| {
+            format!(
+                "decision d() ! {{}} {{ return {}x{}; }}",
+                "c.f(".repeat(n),
+                ")".repeat(n)
+            )
+        };
+        assert!(parse(&nested(MAX_EXPRESSION_DEPTH - 1)).is_ok());
+        assert_eq!(
+            parse(&nested(MAX_EXPRESSION_DEPTH)).unwrap_err()[0].code,
+            "F2002"
+        );
     }
 }

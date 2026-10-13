@@ -175,6 +175,10 @@ pub fn check_declarations(source: &str) -> Result<DeclarationSymbols, Declaratio
             synthetic_span(),
         ));
     }
+    if diagnostics.len() > foresee_syntax::limits::MAX_DIAGNOSTICS {
+        diagnostics.truncate(foresee_syntax::limits::MAX_DIAGNOSTICS - 1);
+        diagnostics.push(error("F0002", "diagnostic limit reached", synthetic_span()));
+    }
     if diagnostics.is_empty() {
         Ok(DeclarationSymbols { symbols, by_name })
     } else {
@@ -265,4 +269,39 @@ pub fn check_ownership(source: &str) -> Result<types::TypeAnalysis, DeclarationF
     let program: ast::BodyProgram = serde_json::from_value(syntax)
         .map_err(|e| DeclarationFailure::FrontendContract(e.to_string()))?;
     checker::check(&program, &symbols, checker::Stage::Ownership)
+}
+
+#[cfg(test)]
+mod budget_tests {
+    use super::*;
+    #[test]
+    fn library_entry_points_reject_oversized_source() {
+        let source = " ".repeat(foresee_syntax::limits::MAX_SOURCE_BYTES + 1);
+        assert!(matches!(
+            check_ownership(&source),
+            Err(DeclarationFailure::Diagnostics(_))
+        ));
+        assert!(matches!(
+            crate::canonical::compile_source(&source),
+            Err(DeclarationFailure::Diagnostics(_))
+        ));
+    }
+    #[test]
+    fn semantic_and_declaration_diagnostics_are_bounded() {
+        let source = include_str!("../../../examples/repair.fore").replace(
+            "let base =",
+            &format!("{}let base =", "let duplicate = missing;".repeat(100)),
+        );
+        let Err(DeclarationFailure::Diagnostics(errors)) = check_ownership(&source) else {
+            panic!("expected diagnostics")
+        };
+        assert_eq!(errors.len(), foresee_syntax::limits::MAX_DIAGNOSTICS);
+        assert_eq!(errors.last().unwrap().code, "F0002");
+        let source = "resource r: Wrong;".repeat(100);
+        let Err(DeclarationFailure::Diagnostics(errors)) = check_declarations(&source) else {
+            panic!("expected diagnostics")
+        };
+        assert_eq!(errors.len(), foresee_syntax::limits::MAX_DIAGNOSTICS);
+        assert_eq!(errors.last().unwrap().code, "F0002");
+    }
 }

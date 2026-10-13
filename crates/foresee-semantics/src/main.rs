@@ -2,6 +2,7 @@ use foresee_semantics::{
     check_declarations, check_effects, check_lineage, check_ownership, check_types,
     DeclarationFailure,
 };
+use foresee_syntax::limits::MAX_SOURCE_BYTES;
 use serde_json::json;
 use std::{env, fs::File, io::Read, process};
 fn main() {
@@ -22,13 +23,16 @@ fn main() {
         process::exit(2);
     }
     let mut bytes = Vec::new();
-    let read = File::open(&args[2]).and_then(|file| file.take(1_000_001).read_to_end(&mut bytes));
+    let read = File::open(&args[2]).and_then(|file| {
+        file.take((MAX_SOURCE_BYTES + 1) as u64)
+            .read_to_end(&mut bytes)
+    });
     if let Err(e) = read {
         eprintln!("{}: {e}", args[2]);
         process::exit(2);
     }
-    if bytes.len() > 1_000_000 {
-        eprintln!("source exceeds 1000000 bytes");
+    if bytes.len() > MAX_SOURCE_BYTES {
+        eprintln!("source exceeds {MAX_SOURCE_BYTES} bytes");
         process::exit(2);
     }
     let source = match String::from_utf8(bytes) {

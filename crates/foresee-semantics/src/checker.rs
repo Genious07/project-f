@@ -125,7 +125,13 @@ pub(crate) fn check(
 }
 impl Checker<'_> {
     fn error(&mut self, code: &str, message: &str, span: &SourceSpan) {
-        self.errors.push(error(code, message, span.clone().into()));
+        let limit = foresee_syntax::limits::MAX_DIAGNOSTICS;
+        if self.errors.len() < limit {
+            self.errors.push(error(code, message, span.clone().into()));
+        } else {
+            self.errors[limit - 1] =
+                error("F0002", "diagnostic limit reached", span.clone().into());
+        }
     }
     fn use_effect(&mut self, kind: &str, target: &str) {
         if self.effects_enabled {

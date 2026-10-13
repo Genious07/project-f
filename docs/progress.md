@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 11: hostile input hardening
+
+Implemented on 13 October 2026.
+
+- Enforced the source byte budget for library callers and changed the syntax CLI to read at most the budget plus one byte.
+- Bounded token count and values, parser collections, expression nesting, diagnostics, and canonical serialization depth. Native expression depth is now 16 rather than 128.
+- Added seven Rust boundary tests and three Python smoke-runner tests, including diagnostic floods, oversized library calls, corrupted output, and identity validation.
+- Added a seeded subprocess mutation campaign with CPU, wall-clock, and output limits, plus a Linux address-space cap. CI stores its summaries and failure inputs.
+
+Local validation: 101 Python tests and 41 Rust unit tests pass. The default campaign completed 1,252 native invocations; seed 913 with 1,024 mutations completed 4,324. Neither found a crash, timeout, process budget failure, internal compiler error, or invalid successful IR. The 354-case end-to-end conformance run and all eight earlier comparison runners also pass. These bounded campaigns do not prove absence of all resource-exhaustion bugs.
+
+Next: day 12 native check/build commands and human-readable diagnostics.
+
 ## Rust milestone day 10: differential compiler harness
 
 Implemented on 12 October 2026.

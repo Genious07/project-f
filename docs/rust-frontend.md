@@ -54,7 +54,7 @@ Four Rust unit tests cover source coordinates after Unicode strings, malformed d
 | Character offsets and line/column spans | Implemented | Exact fixture comparisons |
 | Diagnostic codes and source spans | Matching within shared subset | Message text may differ |
 | Unicode identifiers and non-ASCII digits | Explicitly unsupported | Rust F1004; Python accepts some additional Unicode categories |
-| Expression nesting over 128 levels | Explicitly rejected | Rust F2002; no claim of matching Python's recursion limit |
+| Expression nesting over 16 levels | Explicitly rejected | Rust F2002; reduced from 128 during day 11 hardening; see [limits](compiler-limits.md) |
 | Type, effect, lineage, ownership checking | Python only | Rust parse success is insufficient |
 | Typed IR and program digest generation | Python checker via bridge | Native Rust generation deferred |
 | SQLite execution, journals, replay | Python only | Existing runtime unchanged |

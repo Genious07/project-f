@@ -49,11 +49,14 @@ jobs:
       - run: python tools/check_ir.py
       - run: python tools/check_identity.py
       - run: python tools/check_compilers.py
+      - run: python tools/fuzz_compiler.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: differential-${{ matrix.os }}
-          path: target/differential/
+          path: |
+            target/differential/
+            target/fuzz-smoke/
           if-no-files-found: ignore
   container:
     runs-on: ubuntu-latest

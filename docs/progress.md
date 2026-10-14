@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 12: native compiler CLI
+
+Implemented on 14 October 2026.
+
+- Added native `check` and `build` commands with help, human-readable source locations, JSON diagnostics, and explicit exit codes.
+- Build emits complete typed IR with its digest to a required output path, publishing only a fully written file and rejecting existing destinations.
+- Preserved development-stage command behavior and day 11 resource budgets. OS paths are kept as native path values, with lossy text only for display.
+- Added one Rust option test, ten standalone process tests, and a hosted 258-case CLI comparison runner using a copied binary, empty PATH, and no model credentials.
+
+Local validation: 101 Python tests and 52 Rust unit/integration tests pass. The new check/build runner matches Python acceptance, diagnostic locations, complete IR, and digests on 258 cases. Earlier stage comparisons, the 354-case differential run, and the 1,252-invocation fuzz smoke campaign remain green. Native execution and binary distribution remain separate milestones.
+
+Next: day 13 language server foundation.
+
 ## Rust milestone day 11: hostile input hardening
 
 Implemented on 13 October 2026.

@@ -1,3 +1,4 @@
+mod cli;
 use foresee_semantics::{
     check_declarations, check_effects, check_lineage, check_ownership, check_types,
     DeclarationFailure,
@@ -6,7 +7,21 @@ use foresee_syntax::limits::MAX_SOURCE_BYTES;
 use serde_json::json;
 use std::{env, fs::File, io::Read, process};
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let raw: Vec<_> = env::args_os().collect();
+    if raw.get(1).is_some_and(|s| {
+        ["check", "build", "--help", "-h"]
+            .iter()
+            .any(|name| s == *name)
+    }) {
+        process::exit(cli::run(&raw[1..]));
+    }
+    let args: Vec<String> = match raw.into_iter().map(|s| s.into_string()).collect() {
+        Ok(args) => args,
+        Err(_) => {
+            eprintln!("invalid command argument encoding");
+            process::exit(2);
+        }
+    };
     if args.len() != 3
         || ![
             "declarations",

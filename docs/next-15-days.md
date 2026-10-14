@@ -118,6 +118,8 @@ Acceptance: the bounded fuzz campaign completes without a crash, unbounded alloc
 
 ## Day 12: compiler command-line experience
 
+Status: completed on 14 October 2026. See [native compiler CLI](native-cli.md). Ten process tests and 258 CLI comparison cases validate a copied binary with an empty PATH.
+
 - Add native `check` and `build` commands to the Rust binary.
 - Support human-readable and JSON diagnostics.
 - Define stable exit codes suitable for editors and CI.

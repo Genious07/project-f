@@ -30,3 +30,5 @@ Twenty-seven stored fixtures include source, expected canonical text, and expect
 Five Rust unit tests cover exact escape bytes and Unicode key ordering, large numbers, object and array ordering, a standard SHA-256 vector, and exclusion of the digest from its preimage. Three Python tests protect frozen expectations, dictionary insertion-order independence, and statement-order sensitivity. Hosted CI runs the native comparisons on Linux and macOS.
 
 The earlier `ir` command intentionally continues to emit only the digest-free body. Python remains the runtime. Native user-facing `check` and `build` commands, distribution, and broader generated-program coverage remain subsequent milestones; this change does not publish a new release.
+
+The subsequent [native CLI milestone](native-cli.md) adds user-facing check/build commands. The identity inspection command above retains its existing contract.

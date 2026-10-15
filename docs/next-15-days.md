@@ -128,6 +128,8 @@ Acceptance: a clean machine can check and build the sample program without Pytho
 
 ## Day 13: language server foundation
 
+Status: completed on 15 October 2026. See [native language server](language-server.md). A standalone stdio integration session verifies open, diagnostic publication, correction, hover, symbols, close, and shutdown.
+
 - Create a minimal Language Server Protocol process around the Rust checker.
 - Publish diagnostics on open and change.
 - Add document symbols and hover information for inferred types.

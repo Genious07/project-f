@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 13: language server foundation
+
+Implemented on 15 October 2026.
+
+- Added a standalone `foresee-lsp` stdio process with initialize/shutdown lifecycle and full-document synchronization.
+- Publish versioned diagnostics on open/change and clear them on fixes/close. Stale versions are ignored, and oversized edits discard old semantic content.
+- Added top-level document symbols with declaration/name ranges and hover for inferred expression types and snapshot lineage. Source offsets convert to UTF-16 editor positions.
+- Bounded protocol frames, headers, URI lengths, and open documents; added seven Rust tests, two Python framing tests, and a hosted standalone editor-session test. Existing Cargo run commands retain their default binary.
+
+Local validation: 103 Python tests and 59 Rust unit/integration tests pass. The standalone integration test passes with empty PATH and no source file on disk, including an error after an emoji, corrected diagnostics, hover, symbols, stale edits, close, and clean shutdown. Compiler/CLI comparisons and fuzz smoke checks remain green. This is a synchronous full-sync foundation, not a packaged editor extension.
+
+Next: day 14 native distribution archives, checksums, and software bill of materials.
+
 ## Rust milestone day 12: native compiler CLI
 
 Implemented on 14 October 2026.

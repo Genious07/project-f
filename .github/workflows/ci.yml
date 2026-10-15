@@ -50,6 +50,7 @@ jobs:
       - run: python tools/check_identity.py
       - run: python tools/check_compilers.py
       - run: python tools/check_cli.py
+      - run: python tools/check_lsp.py
       - run: python tools/fuzz_compiler.py
       - uses: actions/upload-artifact@v4
         if: always()

@@ -138,6 +138,8 @@ Acceptance: an editor integration test opens a document, receives diagnostics, f
 
 ## Day 14: distribution preview
 
+Status: implemented on 16 October 2026. See [native distribution](native-distribution.md). Release-mode archives include standalone compiler/LSP binaries, reference sample IR, checksums, provenance, and an SPDX Cargo inventory. Dedicated Linux x86-64 and macOS ARM64 CI jobs verify extracted artifacts before upload.
+
 - Produce native compiler archives for supported macOS and Linux targets.
 - Generate checksums and a software bill of materials.
 - Verify archives outside the source checkout.

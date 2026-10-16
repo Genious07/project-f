@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 14: distribution preview
+
+Implemented on 16 October 2026.
+
+- Added native release packaging for Linux x86-64 and macOS Apple Silicon, with separate hosted build/verification jobs and downloadable CI artifacts.
+- Archives contain compiler and LSP binaries, a sample with Python reference IR, SHA-256 payload hashes, source/toolchain provenance, and an SPDX 2.3 Cargo dependency inventory. Unknown project licensing is explicit.
+- Added bounded extraction checks and four regression tests covering archive corruption, missing files, traversal, links, duplicate members, size limits, permissions, and dependency graph/license metadata.
+- Verification executes extracted binaries outside the checkout with empty PATH, compares complete IR, and exercises the language server using the archived sample.
+
+Local validation: 107 Python tests pass. The Apple Silicon release archive passes checksums, standalone check/build, reference IR comparison, and the complete LSP session. Hosted jobs repeat artifact verification on Ubuntu 24.04 x86-64 and macOS 14 ARM64. No new release is published; the existing alpha remains unchanged.
+
+Next: day 15 compiler preview gate, final parity report, and release readiness review, including the unresolved project license declaration.
+
 ## Rust milestone day 13: language server foundation
 
 Implemented on 15 October 2026.

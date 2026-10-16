@@ -69,3 +69,22 @@ jobs:
           python-version: '3.14'
       - run: docker build -t project-f:ci .
       - run: python tools/verify_container.py project-f:ci
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: rustup show
+      - run: python tools/package_native.py
+      - run: python tools/verify_native.py release-dist/native/*.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.os }}
+          path: release-dist/native/*
+          if-no-files-found: error

@@ -67,3 +67,5 @@ The [bootstrap language contract](docs/bootstrap-language.md) describes the gram
 This is an early reference implementation for one SQLite catalog domain. It includes signature validation, explicit runtime dispatch, [typed IR](docs/typed-ir.md), static snapshot lineage, and formatting-independent program digests. It supports [single-use selections and isolated branches](docs/selection-ownership.md), [transactional concurrent retries](docs/sqlite-transactions.md), durable intent journaling, receipt-based reconciliation, and [reproducible offline decisions](docs/offline-replay.md). Missing evidence remains unresolved rather than triggering a retry. The runtime is not a security sandbox, and offline replay does not authenticate report origin or prove live effects.
 
 See the [development progress log](docs/progress.md) for completed milestones and validation evidence.
+
+Native compiler and language-server archives: [distribution preview](docs/native-distribution.md).

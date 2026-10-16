@@ -63,7 +63,7 @@ def position(source, needle):
     return {'line': line, 'character': len(last_line.encode('utf-16-le')) // 2}
 
 
-def verify(binary):
+def verify(binary, source=None):
     with tempfile.TemporaryDirectory() as directory:
         standalone = Path(directory) / 'foresee-lsp'
         shutil.copy2(binary, standalone)
@@ -75,7 +75,7 @@ def verify(binary):
             assert capabilities['textDocumentSync']['change'] == 1
             client.send('initialized')
             uri = 'file:///not-on-disk/repair.fore'
-            base = (ROOT / 'examples/repair.fore').read_text()
+            base = source if source is not None else (ROOT / 'examples/repair.fore').read_text()
             # Place an emoji before the error on the same line to test UTF-16 conversion.
             broken = base.replace('return commit chosen', 'let label = "😀"; return commit missing')
             client.send('textDocument/didOpen', {'textDocument': {'uri': uri, 'languageId': 'foresee', 'version': 1, 'text': broken}})

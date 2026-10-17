@@ -69,3 +69,5 @@ This is an early reference implementation for one SQLite catalog domain. It incl
 See the [development progress log](docs/progress.md) for completed milestones and validation evidence.
 
 Native compiler and language-server archives: [distribution preview](docs/native-distribution.md).
+
+Current compiler parity, verification evidence, and release blockers: [day 15 preview gate](docs/compiler-preview-gate.md).

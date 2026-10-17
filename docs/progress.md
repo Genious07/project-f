@@ -1,5 +1,18 @@
 # Development progress
 
+## Rust milestone day 15: compiler preview gate
+
+Implemented on 17 October 2026.
+
+- Added a repeatable 17-step native acceptance gate with source provenance, per-step logs, durations, fail-fast execution, and explicit separation from publication approval.
+- Hosted Linux/macOS compiler jobs now include both default and extended conformance/fuzz campaigns and upload their evidence even on failure.
+- Published the final compiler parity table, exact acceptance scope, remaining semantic/platform limits, candidate release contents, and next runtime-development sequence in [compiler preview gate](compiler-preview-gate.md).
+- Marked older Rust milestone documents as historical and linked them to the current capability report. Added three runner tests for success, command failure, missing tools, and timeout handling.
+
+Local validation: 110 Python tests and 59 Rust tests pass. All 17 native gate steps pass, including 354 default and 738 extended differential cases with zero differences, 258 CLI cases, standalone LSP integration, and 1,252 default plus 4,324 extended fuzz invocations without failures. The rebuilt Apple Silicon preview archive passes independent extraction/check/build/IR/LSP verification. Container and Python wheel installation checks run in hosted CI; the local Docker daemon is unavailable.
+
+Publication remains held pending an explicit project license choice and a versioned candidate passing the full workflow. No v0.2 tag or release was created, and v0.1.0-alpha.1 remains unchanged. Next implementation work is the bounded model-provider contract and adapter conformance kit.
+
 ## Rust milestone day 14: distribution preview
 
 Implemented on 16 October 2026.

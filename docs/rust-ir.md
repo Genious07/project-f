@@ -1,5 +1,7 @@
 # Native typed IR lowering
 
+Historical milestone notes. For current capabilities and remaining differences, see the [day 15 compiler preview gate](compiler-preview-gate.md).
+
 The Rust compiler now lowers successfully checked source into the body of typed IR schema 0.0.3. It runs declaration, type, effect, lineage, and ownership checks before lowering. Rejected programs return diagnostics without IR.
 
 ```sh

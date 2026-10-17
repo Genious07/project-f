@@ -1,5 +1,7 @@
 # Native Rust declaration checker
 
+Historical milestone notes. For current capabilities and remaining differences, see the [day 15 compiler preview gate](compiler-preview-gate.md).
+
 Milestone day 3 adds the `foresee-semantics` library and a development command for declaration checks. It runs entirely in Rust. This is one stage of the [semantic compiler architecture](rust-semantic-architecture.md), not a complete native compiler.
 
 ## Use

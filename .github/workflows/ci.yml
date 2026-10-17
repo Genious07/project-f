@@ -37,21 +37,7 @@ jobs:
         with:
           python-version: '3.14'
       - run: rustup show
-      - run: cargo fmt --all --check
-      - run: cargo test --workspace --locked
-      - run: cargo build --workspace --locked
-      - run: python tools/check_frontends.py
-      - run: python tools/check_declarations.py
-      - run: python tools/check_types.py
-      - run: python tools/check_effects.py
-      - run: python tools/check_lineage.py
-      - run: python tools/check_ownership.py
-      - run: python tools/check_ir.py
-      - run: python tools/check_identity.py
-      - run: python tools/check_compilers.py
-      - run: python tools/check_cli.py
-      - run: python tools/check_lsp.py
-      - run: python tools/fuzz_compiler.py
+      - run: python tools/check_preview.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -59,6 +45,9 @@ jobs:
           path: |
             target/differential/
             target/fuzz-smoke/
+            target/differential-extended/
+            target/fuzz-extended/
+            target/preview-gate/
           if-no-files-found: ignore
   container:
     runs-on: ubuntu-latest

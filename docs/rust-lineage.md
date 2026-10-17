@@ -1,5 +1,7 @@
 # Native resource and snapshot lineage validation
 
+Historical milestone notes. For current capabilities and remaining differences, see the [day 15 compiler preview gate](compiler-preview-gate.md).
+
 Milestone day 6 adds `foresee-semantics lineage SOURCE` and the `check_lineage(&str)` library entry point. It includes declaration, type, and effect checks, and then enforces nominal resource and static snapshot origins. Earlier stage commands retain their previous behavior.
 
 ```bash

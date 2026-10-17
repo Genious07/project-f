@@ -148,6 +148,8 @@ Acceptance: every archive checks the example program and emits matching typed IR
 
 ## Day 15: v0.2 compiler preview gate
 
+Status: gate and final parity report implemented on 17 October 2026. See [compiler preview gate](compiler-preview-gate.md). CI now runs the extended conformance and fuzz campaigns on both native platforms. Publication remains pending the project license choice and a versioned candidate passing the complete workflow.
+
 - Run the full Python, Rust, conformance, fuzz-smoke, packaging, and editor integration suites.
 - Publish the final parity table and remaining semantic differences.
 - Prepare a versioned compiler preview only if all correctness gates pass.

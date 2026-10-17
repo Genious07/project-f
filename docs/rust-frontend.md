@@ -1,5 +1,7 @@
 # Rust frontend milestone
 
+Historical milestone notes. For current capabilities and remaining differences, see the [day 15 compiler preview gate](compiler-preview-gate.md).
+
 Day 8 adds a Rust workspace with the `foresee-syntax` library and CLI. It independently implements lexical analysis, recursive-descent parsing, character-based source spans, and structured diagnostics for the supported syntax. Python remains the semantic compiler and runtime. The next implementation is specified in the [native semantic compiler architecture](rust-semantic-architecture.md).
 
 The [native declaration checker](rust-declarations.md) now validates top-level declaration types, cardinality, and names; [native type analysis](rust-types.md) also covers expressions and annotations. [Native effect checking](rust-effects.md) also enforces permissions and branch restrictions. Complete semantic validation and execution still use Python.

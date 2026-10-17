@@ -1,5 +1,7 @@
 # Native selection ownership and branch validation
 
+Historical milestone notes. For current capabilities and remaining differences, see the [day 15 compiler preview gate](compiler-preview-gate.md).
+
 The Rust `ownership` stage adds the remaining static ownership rules to declaration, type, effect, and lineage validation for the current shared language subset.
 
 ```sh

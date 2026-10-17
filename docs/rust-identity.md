@@ -1,5 +1,7 @@
 # Native canonical program identity
 
+Historical milestone notes. For current capabilities and remaining differences, see the [day 15 compiler preview gate](compiler-preview-gate.md).
+
 The native compiler now produces complete schema 0.0.3 IR with the same program digest as the Python reference for the tested shared subset.
 
 ```sh

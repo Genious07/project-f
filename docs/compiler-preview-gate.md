@@ -69,7 +69,7 @@ Before publishing:
 
 ## Next development sequence
 
-1. Define the bounded model-provider contract: request budget, timeout, schema validation, deterministic recorded responses, and explicit provider failures.
+1. Completed on 18 October: [bounded model-provider contract](model-provider-contract.md), request budget, deadline-aware process transport, strict schema validation, recorded proposals, and explicit provider failures.
 2. Implement one opt-in real provider behind that contract while keeping offline tests credential-free.
 3. Build the resource-adapter conformance kit around isolation, commit atomicity, stale snapshots, crash recovery, and replay.
 4. Specify authenticated evidence with a threat model, key ownership, verification, and rotation before implementing signatures.

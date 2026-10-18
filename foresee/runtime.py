@@ -8,6 +8,7 @@ from typing import Any
 
 from .catalog import Catalog, Snapshot, fixture_plans, stable_digest
 from .signatures import BRANCH_FORBIDDEN, METHODS
+from .model_provider import ProposalFailure
 from .providers import SystemClock, FixtureProvider, ResourceProvider, ModelProvider, JournalProvider, ClockProvider
 
 
@@ -80,6 +81,10 @@ class Runtime:
     def propose_plans(self, model, base, prompt, limit):
         try:
             return self.model_provider.propose(base, prompt, limit)
+        except ProposalFailure as error:
+            stop = DecisionStop("provider_error", str(error))
+            stop.outcome["provider_code"] = error.code
+            raise stop from error
         except (OSError, ValueError, RuntimeError) as error:
             raise DecisionStop("provider_error", str(error)) from error
 

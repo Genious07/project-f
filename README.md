@@ -71,3 +71,5 @@ See the [development progress log](docs/progress.md) for completed milestones an
 Native compiler and language-server archives: [distribution preview](docs/native-distribution.md).
 
 Current compiler parity, verification evidence, and release blockers: [day 15 preview gate](docs/compiler-preview-gate.md).
+
+Opt-in bounded proposal API, process transport, and offline replay: [model-provider contract](docs/model-provider-contract.md).

@@ -1,5 +1,16 @@
 # Development progress
 
+## Runtime milestone: bounded model-provider contract
+
+Implemented on 18 October 2026.
+
+- Added an opt-in bounded JSON proposal provider with per-instance call limits, request/response byte caps, candidate/patch limits, strict response validation, and request-digest binding.
+- Added a POSIX subprocess transport with incremental output reads, deadlines, process-group cleanup, no shell interpolation, and sanitized errors. It runs explicitly trusted commands; it is not a sandbox.
+- Integrated stable provider error codes into runtime reports. Accepted proposals reuse existing offline evidence; provider failures stop before exploration/commit and mark evidence incomplete.
+- Added a runnable offline protocol worker, source-distribution inclusion, contract documentation, and thirteen tests including real processes, timeout/pipe cleanup, unchanged targets on failure, and replay with live access disabled.
+
+Validation: 123 Python tests pass locally. Existing native compiler, package installation, archive, and container gates remain mandatory in hosted CI. No network provider or paid inference is enabled. Next: an opt-in real-provider adapter with token/spend controls. The compiler prerelease remains pending the project license choice.
+
 ## Rust milestone day 15: compiler preview gate
 
 Implemented on 17 October 2026.

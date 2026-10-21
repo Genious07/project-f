@@ -70,7 +70,7 @@ Before publishing:
 ## Next development sequence
 
 1. Completed on 18 October: [bounded model-provider contract](model-provider-contract.md), request budget, deadline-aware process transport, strict schema validation, recorded proposals, and explicit provider failures.
-2. Implement one opt-in real provider behind that contract while keeping offline tests credential-free.
+2. Implemented on 21 October: [opt-in OpenAI Responses adapter](openai-provider.md), with token preflight, configured cost reservations, and credential-free tests. Live account/model compatibility remains unverified.
 3. Build the resource-adapter conformance kit around isolation, commit atomicity, stale snapshots, crash recovery, and replay.
 4. Specify authenticated evidence with a threat model, key ownership, verification, and rotation before implementing signatures.
 5. Add a second transactional adapter only after it passes the conformance kit. Reassess native effect execution after these runtime contracts are stable.

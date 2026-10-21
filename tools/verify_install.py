@@ -28,6 +28,22 @@ def main():
         def run(*words):
             result = subprocess.run([str(cli), *map(str, words)], cwd=root, env=env, check=True, capture_output=True, text=True, timeout=30)
             return result.stdout
+        if os.name == "posix":
+            # Exercise the installed worker from outside the repository, without a key.
+            smoke = """
+from foresee.catalog import Snapshot
+from foresee.model_provider import ProposalFailure
+from foresee.openai_provider import OpenAIConfig, openai_provider
+provider = openai_provider(OpenAIConfig('test-model', 100, 100, 1, 1, 10))
+try:
+    provider.propose(Snapshot(0, (), 'test'), 'repair', 1)
+except ProposalFailure as error:
+    assert error.code == 'missing_credentials', error.code
+else:
+    raise AssertionError('worker unexpectedly succeeded')
+"""
+            subprocess.run([str(python), "-c", smoke], cwd=root,
+                           env={**env, "OPENAI_API_KEY": ""}, check=True, timeout=20)
         project = root / "project"
         run("init", project, "--demo-data")
         run("check", project / "decision.fore")

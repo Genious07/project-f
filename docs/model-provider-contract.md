@@ -95,4 +95,4 @@ Thirteen new tests cover request/response budgets, call exhaustion, strict schem
 
 ## Next step
 
-Implement one opt-in real-model adapter against this contract with explicit model selection, endpoint configuration, token/spend controls, bounded network reads, and cancellation. Keep that adapter disabled by default and preserve credential-free conformance tests. The v0.2 license/publication decision remains separate.
+Implemented on 21 October: the [opt-in OpenAI adapter](openai-provider.md) adds explicit model selection, a fixed official endpoint, token preflight, cost reservations, bounded HTTP reads, and local process termination. It remains disabled by default; tests remain credential-free. Local termination does not guarantee server-side cancellation. Next is the resource-adapter conformance kit. The v0.2 license/publication decision remains separate.

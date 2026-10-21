@@ -1,5 +1,16 @@
 # Development progress
 
+## Runtime milestone: opt-in OpenAI proposal adapter
+
+Implemented on 21 October 2026.
+
+- Added an explicit Responses adapter with no default model, token preflight, strict structured output, output-token limits, and no automatic retries or tools.
+- Added integer cost reservations from caller-supplied price ceilings. Failed or uncertain attempts retain their full reservation; budget is scoped to one transport instance and is not an account-wide billing cap.
+- Isolated HTTP in the existing bounded worker process, pinned the official HTTPS endpoint, disabled redirects/proxies, capped response reads, and sanitized failures. Local termination does not guarantee remote cancellation.
+- Added thirteen offline tests and a clean-wheel worker smoke check. Accepted proposals retain existing simulation, transactional commit, and offline replay behavior.
+
+Local validation: 136 Python tests pass. API responses are mocked, and the actual-worker test explicitly clears credentials. No paid or live API request was made; account/model compatibility is not yet verified. Full hosted compiler, package, container, and archive gates remain required. Next: resource-adapter conformance kit. The v0.2 prerelease remains pending the project license choice.
+
 ## Runtime milestone: bounded model-provider contract
 
 Implemented on 18 October 2026.

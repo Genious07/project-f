@@ -73,4 +73,4 @@ Thirteen new offline tests cover shared preflight/generation inputs, token limit
 
 No paid/live API call was made during this milestone. Compatibility with a particular account and model remains to be verified by an explicitly configured live smoke test. Linux and macOS use the existing POSIX process boundary; Windows remains unsupported for this transport. A selected model can impose limits beyond these local bounds.
 
-Next: the resource-adapter conformance kit, covering isolation, stale snapshots, atomic commit, crash recovery, and replay. An authenticated provider/billing evidence format remains separate work.
+Implemented on 22 October: the [resource-adapter conformance kit](adapter-conformance.md), covering isolation, stale snapshots, atomic commit, injected failures, and replay. The existing SQLite process-crash tests remain separate. Next is the authenticated-evidence threat model and verification contract.

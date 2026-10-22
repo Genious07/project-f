@@ -44,6 +44,7 @@ else:
 """
             subprocess.run([str(python), "-c", smoke], cwd=root,
                            env={**env, "OPENAI_API_KEY": ""}, check=True, timeout=20)
+        subprocess.run([str(python), "-m", "foresee.conformance"], cwd=root, env=env, check=True, timeout=30)
         project = root / "project"
         run("init", project, "--demo-data")
         run("check", project / "decision.fore")

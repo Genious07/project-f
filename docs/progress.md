@@ -1,5 +1,16 @@
 # Development progress
 
+## Runtime milestone: resource-adapter conformance kit
+
+Implemented on 22 October 2026.
+
+- Added a reusable twelve-case adapter contract suite with disposable fixtures and a SQLite driver separated from the shared behavioral checks.
+- Covered immutable snapshots, simulation isolation, durable/idempotent commits, changed intents, invalid plans, stale receipts, precommit rollback/visibility, receipt-write failures, lost acknowledgments, concurrent retries, and offline report replay.
+- Added three broken-fixture probes to demonstrate that missing receipts, simulation writes, and ignored fault hooks fail the contract.
+- Added an installed entry point (`python -m foresee.conformance`) and clean-wheel verification outside the checkout. Existing SQLite process-crash and journal tests remain mandatory.
+
+Local validation: all 151 Python tests pass, including twelve SQLite contract cases and three kit probes. The previous OpenAI-adapter CI run is now green after retrying the artifact-upload failure. This profile covers Catalog/Patch-compatible stores; generic runtime dispatch, new resource domains, and power-loss guarantees remain outside scope. Next: authenticated-evidence threat model and key/verification contract. The compiler release remains pending the project license choice.
+
 ## Runtime milestone: opt-in OpenAI proposal adapter
 
 Implemented on 21 October 2026.

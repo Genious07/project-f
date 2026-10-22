@@ -75,3 +75,5 @@ Current compiler parity, verification evidence, and release blockers: [day 15 pr
 Opt-in bounded proposal API, process transport, and offline replay: [model-provider contract](docs/model-provider-contract.md).
 
 Optional real-model integration: [OpenAI adapter and cost reservations](docs/openai-provider.md).
+
+Storage adapter contract checks: [resource-adapter conformance kit](docs/adapter-conformance.md).

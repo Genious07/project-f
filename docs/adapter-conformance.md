@@ -72,4 +72,4 @@ SQLite passes all twelve contract checks. The Python suite has 151 passing tests
 
 The previous OpenAI-adapter CI run also passed after retrying GitHub's artifact-upload failure. Live API compatibility remains unverified, and the compiler release still awaits the project license choice.
 
-Next: define the authenticated-evidence threat model and key/verification contract, followed by a second transactional adapter with its own recovery integration and crash tests.
+Designed on 24 October: [authenticated evidence](authenticated-evidence.md), including the threat model, key policy, and tested envelope scaffolding. Cryptographic verification remains the next implementation gate, followed by a second transactional adapter with its own recovery integration and crash tests.

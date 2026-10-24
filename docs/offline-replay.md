@@ -45,3 +45,5 @@ There is no automatic field redaction in this release. A replayable sanitized fi
 ## Scope
 
 The offline interpreter uses the same deterministic domain functions as live exploration, so this checks recorded results against executable semantics rather than providing an independent implementation proof. It has no live adapter, but it is not a resource-limited sandbox for arbitrarily large hostile files. Crash recovery does not reconstruct missing full reports from journals. Those are separate capabilities.
+
+The [authenticated-evidence design](authenticated-evidence.md) defines the proposed signing and trusted-key model. Its current format helpers do not verify signatures or change the replay result above.

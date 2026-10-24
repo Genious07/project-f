@@ -77,3 +77,5 @@ Opt-in bounded proposal API, process transport, and offline replay: [model-provi
 Optional real-model integration: [OpenAI adapter and cost reservations](docs/openai-provider.md).
 
 Storage adapter contract checks: [resource-adapter conformance kit](docs/adapter-conformance.md).
+
+Proposed signature profile and format scaffolding: [authenticated-evidence design](docs/authenticated-evidence.md). Cryptographic verification is not implemented yet.

@@ -1,5 +1,16 @@
 # Development progress
 
+## Evidence milestone: authentication design and format scaffolding
+
+Implemented on 24 October 2026.
+
+- Defined the threat model and separate checksum, replay, signature, trusted-origin, and target-effect claims. Documented operator-owned keys, explicit trust policy, rotation/revocation, audience/time rules, and remaining limitations.
+- Proposed a single-signature DSSE/Ed25519 profile that binds exact report bytes and signed issuer/audience/key metadata. Private-key handling and cryptographic verification are explicit subsequent gates.
+- Added bounded JSON/base64 parsing, report checksum/eligibility checks, DSSE framing, key fingerprints, envelope serialization, and immutable inspection results. Inspection never claims signature verification or authenticated origin.
+- Added nine format tests covering framing, byte preservation, malformed input, bounds, checksums, metadata, and real runtime reports. Existing replay behavior and package dependencies remain unchanged.
+
+Local validation: all 160 Python tests pass. This is design and format groundwork, not a signature implementation or security certification. No signing keys were generated, no reports were signed, and no new release was published. Next: maintained Ed25519 backend, trusted-key policy validation, isolated replay, and installed signing/verification workflows. The project license decision remains open.
+
 ## Runtime milestone: resource-adapter conformance kit
 
 Implemented on 22 October 2026.

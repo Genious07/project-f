@@ -23,6 +23,7 @@ Publication is held pending an explicit project license choice. The existing `v0
 ## Evidence and repeatable gates
 
 ```sh
+python -m pip install ".[evidence]"
 python -m unittest discover -s tests -v
 python tools/check_preview.py
 python tools/package_native.py
@@ -72,5 +73,5 @@ Before publishing:
 1. Completed on 18 October: [bounded model-provider contract](model-provider-contract.md), request budget, deadline-aware process transport, strict schema validation, recorded proposals, and explicit provider failures.
 2. Implemented on 21 October: [opt-in OpenAI Responses adapter](openai-provider.md), with token preflight, configured cost reservations, and credential-free tests. Live account/model compatibility remains unverified.
 3. Implemented on 22 October: [resource-adapter conformance kit](adapter-conformance.md), with twelve shared checks for the current Catalog/Patch domain. Existing SQLite process-crash and reconciliation tests remain required.
-4. Designed on 24 October: [authenticated-evidence profile](authenticated-evidence.md), with threat model, key ownership/rotation, verification rules, and tested format scaffolding. Signing and cryptographic verification are not yet implemented.
+4. Designed on 24 October: [authenticated-evidence profile](authenticated-evidence.md), with threat model, key ownership/rotation, verification rules, and tested format scaffolding. Extended on 25 October with Ed25519 statement signing and explicit trusted-key authentication. Bounded semantic replay and key custody/CLI integration remain next.
 5. Add a second transactional adapter only after it passes the conformance kit. Reassess native effect execution after these runtime contracts are stable.

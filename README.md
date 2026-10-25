@@ -37,6 +37,7 @@ python3 -m foresee demo examples/repair.fore
 Run tests:
 
 ```bash
+python3 -m pip install ".[evidence]"
 python3 -m unittest discover -s tests -v
 ```
 
@@ -78,4 +79,4 @@ Optional real-model integration: [OpenAI adapter and cost reservations](docs/ope
 
 Storage adapter contract checks: [resource-adapter conformance kit](docs/adapter-conformance.md).
 
-Proposed signature profile and format scaffolding: [authenticated-evidence design](docs/authenticated-evidence.md). Cryptographic verification is not implemented yet.
+Experimental Ed25519 signing primitives and explicit trusted-key verification: [authenticated-evidence design](docs/authenticated-evidence.md). Install the optional `evidence` extra to use them. Bounded replay and the report-signing CLI are still pending; a trusted signature alone does not prove execution or target effects.

@@ -1,5 +1,16 @@
 # Development progress
 
+## Evidence milestone: Ed25519 signatures and explicit trust policy
+
+Implemented on 25 October 2026.
+
+- Added optional maintained cryptography backend and a low-level DSSE statement-signing primitive that verifies the caller-owned key fingerprint.
+- Added bounded, strict local trust-policy parsing and exact-byte signature verification with explicit issuer, audience, clock, maximum lifetime, validity, rotation, and revocation checks.
+- Kept authenticated origin separate from semantic replay and target-effect verification. Existing unsigned replay remains unchanged; the new authentication API does not access live targets or providers.
+- Added fourteen tests covering a published RFC vector, tampering even after checksum recomputation, protocol binding, wrong keys, policy rejection, time boundaries, key rotation/revocation, missing dependency, and a real report with live access disabled. CI also runs them against the installed optional extra outside the checkout.
+
+Local validation: 174 Python tests pass. The full hosted compiler, package, container, and archive gates remain required. Next: bounded semantic replay, then key custody and no-overwrite signing CLI integration. These primitives are experimental and do not complete the authenticated-report workflow. The v0.2 prerelease remains pending the license choice.
+
 ## Evidence milestone: authentication design and format scaffolding
 
 Implemented on 24 October 2026.

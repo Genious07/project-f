@@ -1,6 +1,6 @@
 # Authenticated evidence: draft v1 design
 
-Design and format scaffolding implemented on 24 October 2026. This is a proposed protocol profile with executable parsing and encoding checks. **Signing, cryptographic verification, trusted-key policy evaluation, and signing CLI commands are not implemented in this milestone.** Existing replay continues to report `origin_authenticated: false`.
+Design and format scaffolding implemented on 24 October 2026; signature and trust primitives added on 25 October. **This remains an experimental protocol profile, not a complete report-signing workflow.** Ed25519 statement signing and trusted-key authentication are implemented. Bounded semantic replay, key-file custody, and signing CLI commands are still pending. Existing unsigned replay continues to report `origin_authenticated: false`.
 
 ## Philosophy and claims
 
@@ -53,7 +53,7 @@ Issuer and audience labels are 1 to 200 ASCII characters: an initial alphanumeri
 
 The signature input is DSSE pre-authentication encoding of the UTF-8 payload type and the unchanged statement bytes. Lengths count bytes. Verifiers must not parse and reserialize the statement before checking its signature. The encoder emits sorted compact ASCII-escaped JSON for convenience; verification accepts other valid statement whitespace while retaining the original bytes.
 
-The proposed algorithm is plain Ed25519 from [RFC 8032](https://www.rfc-editor.org/rfc/rfc8032.html), with 32-byte public keys and 64-byte signatures. The signature algorithm is fixed by this profile and trusted policy, not chosen by an envelope field. Do not implement curve arithmetic in Foresee or treat the RFC's illustrative code as a production cryptographic dependency. The implementation milestone must select a maintained library and test its integration against standard vectors.
+The algorithm is plain Ed25519 from [RFC 8032](https://www.rfc-editor.org/rfc/rfc8032.html), with 32-byte public keys and 64-byte signatures. The signature algorithm is fixed by this profile and trusted policy, not chosen by an envelope field. Do not implement curve arithmetic in Foresee or treat the RFC's illustrative code as a production cryptographic dependency. The optional `evidence` extra pins the maintained [cryptography 50.0.2 backend](https://cryptography.io/en/stable/changelog/), using its [Ed25519 API](https://cryptography.io/en/stable/hazmat/primitives/asymmetric/ed25519/). Tests include RFC 8032 section 7.1 test 1. Dependency updates require rerunning the evidence gates.
 
 The outer DSSE key ID is only a lookup hint. Foresee repeats it inside the signed statement and requires exact equality, then recomputes it from the trusted public key. The artifact must never introduce its own trusted public key, key URL, certificate authority, or signature algorithm.
 
@@ -114,11 +114,23 @@ Limits are 8 MB for report bytes, 11 MB for decoded statement bytes, 15 MB for e
 
 Nine tests cover the framing vector and UTF-8 byte lengths, unchanged signed bytes, malformed encodings, bounds, metadata, report eligibility/checksums, and a real runtime report. Zero-filled signature placeholders in these tests are deliberately non-authentic; successfully inspecting them never sets an authentication flag.
 
+## Implemented signature and trust primitives
+
+Install with `python -m pip install ".[evidence]"` from the checkout. The base package remains dependency-free; importing the module does not load the cryptographic backend. Calling a cryptographic operation without the extra fails explicitly.
+
+`foresee.evidence_auth.sign_statement(payload, private_key)` accepts a caller-owned `cryptography` Ed25519 private-key object. It checks the statement and key fingerprint, signs the exact DSSE bytes, and returns an envelope. This is a low-level endorsement primitive: it does not replay the report, enforce policy, create key files, or claim the signer executed the program. The future report-signing command must enforce bounded replay before invoking it. Do not treat it as that completed workflow.
+
+`authenticate_envelope(envelope_bytes, policy_bytes, expected_issuer=..., expected_audience=..., now=..., max_lifetime=...)` requires all verifier choices explicitly. Supply policy and time from the verifier's trusted configuration, never from the artifact. It accepts only the policy schema above, with at most 65,536 bytes, 64 keys, and 32 unique audiences per key. Empty key lists trust nobody. Parsing rejects unknown fields, duplicate keys/fingerprints/audiences, noncanonical base64, booleans as timestamps, and invalid validity intervals. It performs no discovery, file access, network request, semantic replay, or target access.
+
+After policy and exact-byte signature checks succeed, the immutable result contains the original report bytes, signer metadata, verifier time, and separate true format/signature/trust/checksum/origin fields. `decision_reproduced=None` means replay was not attempted; `target_effect_verified=False` means no effect claim. Rejections raise `ValueError` and return no partial success. Missing backend raises `RuntimeError`. Origin authentication means trusted-key endorsement under the supplied policy at the supplied time, not a global or permanent verdict. Result objects themselves are ordinary Python values, not transferable credentials; another process must verify the envelope again.
+
+Fourteen tests cover a published Ed25519 vector, exact bytes and protocol binding, wrong keys, changed report checksums, signed metadata, issuer/audience policy, precise time boundaries, lifetime limits, rotation/revocation, malformed policy, missing dependency, and the distinction between authenticated origin and reproducible decisions. CI runs them on Python 3.11 through 3.14 on Linux and 3.14 on macOS, then reruns them against an installed wheel outside the checkout. Run `python tools/verify_install.py dist/*.whl --evidence` after building to repeat the installed-package gate.
+
 ## Gates before authenticated verification can ship
 
-1. Integrate a maintained Ed25519 backend with standard vectors and wrong-key/tampering tests. No handwritten cryptography.
-2. Implement explicit trust-policy parsing and all key, issuer, audience, lifetime, expiry, and revocation rules, with negative tests.
+1. Implemented: maintained Ed25519 backend, standard vector, wrong-key and tampering tests. No handwritten cryptography.
+2. Implemented: explicit trust-policy parsing and key, issuer, audience, lifetime, expiry, and revocation rules with negative tests.
 3. Isolate semantic replay with byte, execution-time, and memory limits suitable for the supported platforms.
 4. Add signer/key custody interfaces and no-overwrite CLI output, plus installed-package end-to-end tests.
 5. Verify that legacy unsigned replay remains compatible and never upgrades itself to authenticated origin.
-6. Review the combined failure behavior before advertising this as authenticated evidence. The current design and parser alone do not satisfy these gates.
+6. Review the combined failure behavior before advertising this as authenticated evidence. The current primitives do not satisfy the remaining replay and key-custody gates.

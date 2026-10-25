@@ -18,10 +18,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+      - run: python -m pip install ".[evidence]"
       - run: python -m unittest discover -s tests -v
       - run: python -m pip install build==1.2.2.post1
       - run: python -m build
-      - run: python tools/verify_install.py dist/*.whl
+      - run: python tools/verify_install.py dist/*.whl --evidence
       - uses: actions/upload-artifact@v4
         with:
           name: packages-${{ matrix.os }}-${{ matrix.python }}

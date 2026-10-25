@@ -15,6 +15,7 @@ from pathlib import Path
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("wheel", type=Path)
+    parser.add_argument("--evidence", action="store_true", help="also install the evidence extra and test signatures")
     args = parser.parse_args()
     wheel = args.wheel.resolve()
     env = {k: v for k, v in os.environ.items() if k not in {"PYTHONPATH", "PYTHONHOME"}}
@@ -63,6 +64,16 @@ else:
             assert db.execute("SELECT revision FROM catalog_meta").fetchone()[0] == 1
             assert db.execute("SELECT count(*) FROM foresee_receipts").fetchone()[0] == 1
         print("PASS: clean wheel install, CLI workflow, persisted data, and cold backup/restore")
+        if args.evidence:
+            subprocess.run([str(python), "-m", "pip", "install", str(wheel) + "[evidence]"],
+                           cwd=root, env=env, check=True, timeout=180)
+            # Copy only the standalone tests: imports must resolve to the installed wheel.
+            shutil.copyfile(Path(__file__).resolve().parents[1] / "tests/test_evidence_auth.py",
+                            root / "test_evidence_auth.py")
+            subprocess.run([str(python), "-m", "unittest", "test_evidence_auth", "-v"],
+                           cwd=root, env=env, check=True, timeout=30)
+            print("PASS: installed evidence extra, signatures, and trust rejection tests")
+
 
 
 if __name__ == "__main__":

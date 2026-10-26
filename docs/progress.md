@@ -1,5 +1,16 @@
 # Development progress
 
+## Evidence milestone: Linux bounded semantic replay
+
+Implemented on 26 October 2026.
+
+- Added an opt-in replay API using a fixed isolated Python worker, with an 8 MB input ceiling, strict report parsing, a bounded response, parent wall-clock deadline, and Linux kernel CPU/address-space limits installed before report parsing and replay imports.
+- Removed inherited application environment from this worker, disabled user/site imports and bytecode writes, and disabled core dumps. This limits resources for the trusted interpreter; it is not an OS sandbox or a proof of real target effects.
+- Fail closed on unsupported platforms, unavailable limits, malformed reports, child crashes, excess output, or timeout. No automatic fallback to in-process replay. Existing unsigned replay remains unchanged.
+- Added eleven tests including real subprocess failure paths and Linux memory/CPU exhaustion checks. The same tests run against the installed wheel outside the checkout.
+
+Local validation: 185 tests discovered, with four Linux-only tests skipped on macOS. Hosted Linux tests are required to establish actual resource enforcement. Next: compose bounded replay with signature verification and report signing, then key custody and no-overwrite CLI output. The prerelease remains pending the license choice.
+
 ## Evidence milestone: Ed25519 signatures and explicit trust policy
 
 Implemented on 25 October 2026.

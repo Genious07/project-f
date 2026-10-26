@@ -64,6 +64,12 @@ else:
             assert db.execute("SELECT revision FROM catalog_meta").fetchone()[0] == 1
             assert db.execute("SELECT count(*) FROM foresee_receipts").fetchone()[0] == 1
         print("PASS: clean wheel install, CLI workflow, persisted data, and cold backup/restore")
+        shutil.copyfile(Path(__file__).resolve().parents[1] / "tests/test_bounded_replay.py",
+                        root / "test_bounded_replay.py")
+        subprocess.run([str(python), "-m", "unittest", "test_bounded_replay", "-v"],
+                       cwd=root, env=env, check=True, timeout=30)
+        print("PASS: installed bounded replay tests (Linux resource tests require Linux)")
+
         if args.evidence:
             subprocess.run([str(python), "-m", "pip", "install", str(wheel) + "[evidence]"],
                            cwd=root, env=env, check=True, timeout=180)

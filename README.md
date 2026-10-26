@@ -79,4 +79,4 @@ Optional real-model integration: [OpenAI adapter and cost reservations](docs/ope
 
 Storage adapter contract checks: [resource-adapter conformance kit](docs/adapter-conformance.md).
 
-Experimental Ed25519 signing primitives and explicit trusted-key verification: [authenticated-evidence design](docs/authenticated-evidence.md). Install the optional `evidence` extra to use them. Bounded replay and the report-signing CLI are still pending; a trusted signature alone does not prove execution or target effects.
+Experimental Ed25519 signing primitives and explicit trusted-key verification: [authenticated-evidence design](docs/authenticated-evidence.md). Install the optional `evidence` extra to use them. [Linux bounded replay](docs/bounded-replay.md) is available separately. The composed report-signing CLI is still pending; a trusted signature alone does not prove execution or target effects.

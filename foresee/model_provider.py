@@ -50,12 +50,16 @@ class ProposalTransport(Protocol):
 
 class ProcessTransport:
     """POSIX process boundary, not a sandbox. Only run explicitly trusted commands."""
-    def __init__(self, argv):
+    def __init__(self, argv, *, env=None):
         if os.name != 'posix':
             raise ValueError('process transport requires POSIX')
         if not isinstance(argv, (list, tuple)) or not argv or any(not isinstance(x, str) or not x or '\0' in x for x in argv):
             raise ValueError('argv must contain nonempty command arguments')
         self.argv = tuple(argv)
+        if env is not None and (type(env) is not dict or any(type(k) is not str or type(v) is not str
+                                                           for k, v in env.items())):
+            raise ValueError('env must be a string mapping or None')
+        self.env = None if env is None else dict(env)
 
     def exchange(self, request, *, timeout_seconds, max_response_bytes):
         deadline = time.monotonic() + timeout_seconds
@@ -66,7 +70,7 @@ class ProcessTransport:
             source.seek(0)
             try:
                 process = subprocess.Popen(self.argv, stdin=source, stdout=subprocess.PIPE,
-                                           stderr=subprocess.DEVNULL, start_new_session=True)
+                                           stderr=subprocess.DEVNULL, start_new_session=True, env=self.env)
             except OSError:
                 raise ProposalFailure('transport_error') from None
             try:

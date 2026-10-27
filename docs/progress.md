@@ -1,5 +1,16 @@
 # Development progress
 
+## Evidence milestone: composed signing and verification
+
+Implemented on 27 October 2026.
+
+- Added `sign_report`, which derives the key fingerprint and requires successful bounded replay before producing a signature. No key is sent to the replay worker.
+- Added `verify_report`, which authenticates first and then replays the exact authenticated report bytes. Separate results preserve trusted origin without mistaking a replay failure for successful combined verification.
+- Added an explicit `requirements_satisfied` property; real target effects remain unverified. Authentication failures do not launch replay, and unsupported platforms receive no weaker fallback.
+- Added nine tests, including a real Linux round trip and rejection of a false report endorsed by a trusted key. Clean installed-package checks run the same suite.
+
+Local validation: 194 tests discovered, with five Linux-only tests skipped on macOS. Hosted Linux tests remain required for the real composed workflow. Next: key custody, bounded file reads, and no-overwrite signing/verification CLI commands. The prerelease remains pending the license choice.
+
 ## Evidence milestone: Linux bounded semantic replay
 
 Implemented on 26 October 2026.

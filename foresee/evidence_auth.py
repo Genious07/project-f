@@ -78,8 +78,8 @@ def _policy(raw):
 def sign_statement(payload, private_key):
     """Low-level endorsement only; does NOT replay a report or validate trust policy.
 
-    Accepts a caller-owned cryptography Ed25519 key object. The future report
-    signing workflow must enforce bounded semantic replay before this primitive.
+    Accepts a caller-owned cryptography Ed25519 key object. Use
+    evidence_workflow.sign_report to require bounded replay before signing.
     """
     statement, _ = _statement(payload)
     private_type, _, _ = _backend()

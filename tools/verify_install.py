@@ -78,6 +78,10 @@ else:
                             root / "test_evidence_auth.py")
             subprocess.run([str(python), "-m", "unittest", "test_evidence_auth", "-v"],
                            cwd=root, env=env, check=True, timeout=30)
+            shutil.copyfile(Path(__file__).resolve().parents[1] / "tests/test_evidence_workflow.py",
+                            root / "test_evidence_workflow.py")
+            subprocess.run([str(python), "-m", "unittest", "test_evidence_workflow", "-v"],
+                           cwd=root, env=env, check=True, timeout=30)
             print("PASS: installed evidence extra, signatures, and trust rejection tests")
 
 

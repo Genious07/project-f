@@ -1,6 +1,6 @@
 # Authenticated evidence: draft v1 design
 
-Design and format scaffolding implemented on 24 October 2026; signature and trust primitives added on 25 October. **This remains an experimental protocol profile, not a complete report-signing workflow.** Ed25519 statement signing and trusted-key authentication are implemented. Linux resource-bounded semantic replay was added on 26 October. Key-file custody, composed signing/verification workflows, and signing CLI commands are still pending. Existing unsigned replay continues to report `origin_authenticated: false`.
+Design and format scaffolding implemented on 24 October 2026; signature and trust primitives added on 25 October. **This remains an experimental protocol profile, not a complete report-signing workflow.** Ed25519 statement signing and trusted-key authentication are implemented. Linux resource-bounded semantic replay was added on 26 October. Composed signing/verification APIs were added on 27 October. Key-file custody and signing CLI commands are still pending. Existing unsigned replay continues to report `origin_authenticated: false`.
 
 ## Philosophy and claims
 
@@ -118,7 +118,7 @@ Nine tests cover the framing vector and UTF-8 byte lengths, unchanged signed byt
 
 Install with `python -m pip install ".[evidence]"` from the checkout. The base package remains dependency-free; importing the module does not load the cryptographic backend. Calling a cryptographic operation without the extra fails explicitly.
 
-`foresee.evidence_auth.sign_statement(payload, private_key)` accepts a caller-owned `cryptography` Ed25519 private-key object. It checks the statement and key fingerprint, signs the exact DSSE bytes, and returns an envelope. This is a low-level endorsement primitive: it does not replay the report, enforce policy, create key files, or claim the signer executed the program. The future report-signing command must enforce bounded replay before invoking it. Do not treat it as that completed workflow.
+`foresee.evidence_auth.sign_statement(payload, private_key)` accepts a caller-owned `cryptography` Ed25519 private-key object. It checks the statement and key fingerprint, signs the exact DSSE bytes, and returns an envelope. This is a low-level endorsement primitive: it does not replay the report, enforce policy, create key files, or claim the signer executed the program. The composed `sign_report` API enforces bounded replay before invoking it. Do not treat it as that completed workflow.
 
 `authenticate_envelope(envelope_bytes, policy_bytes, expected_issuer=..., expected_audience=..., now=..., max_lifetime=...)` requires all verifier choices explicitly. Supply policy and time from the verifier's trusted configuration, never from the artifact. It accepts only the policy schema above, with at most 65,536 bytes, 64 keys, and 32 unique audiences per key. Empty key lists trust nobody. Parsing rejects unknown fields, duplicate keys/fingerprints/audiences, noncanonical base64, booleans as timestamps, and invalid validity intervals. It performs no discovery, file access, network request, semantic replay, or target access.
 
@@ -126,11 +126,44 @@ After policy and exact-byte signature checks succeed, the immutable result conta
 
 Fourteen tests cover a published Ed25519 vector, exact bytes and protocol binding, wrong keys, changed report checksums, signed metadata, issuer/audience policy, precise time boundaries, lifetime limits, rotation/revocation, malformed policy, missing dependency, and the distinction between authenticated origin and reproducible decisions. CI runs them on Python 3.11 through 3.14 on Linux and 3.14 on macOS, then reruns them against an installed wheel outside the checkout. Run `python tools/verify_install.py dist/*.whl --evidence` after building to repeat the installed-package gate.
 
+## Composed report workflow
+
+Implemented on 27 October 2026 in `foresee.evidence_workflow`. Install the `evidence` extra. Successful combined verification currently requires Linux because bounded replay fails closed on other platforms.
+
+```python
+from foresee.evidence_workflow import sign_report, verify_report
+
+# private_key is an operator-owned cryptography Ed25519 key object.
+envelope = sign_report(report_bytes, private_key, issuer="deployment/team",
+                       audience="audit/production", issued_at=issued_at,
+                       expires_at=expires_at)
+result = verify_report(envelope, trusted_policy_bytes,
+                       expected_issuer="deployment/team",
+                       expected_audience="audit/production", now=verifier_time,
+                       max_lifetime=3600)
+if not result.requirements_satisfied:
+    raise ValueError(result.replay_error)
+```
+
+Both functions accept an optional `ReplayBudget` as `budget`. Inputs are already bounded byte strings; file custody and bounded file reads belong to the future CLI. Signing derives the fingerprint from the supplied key, validates the report/metadata, reproduces the exact report bytes under the replay budget, and only then calls the signing primitive. A replay failure raises `ReplayFailure` without returning any envelope. No private key is supplied to the replay subprocess. Signing does not automatically establish trust in that key or enforce a verifier's policy.
+
+Verification authenticates the envelope under explicit policy first. Authentication or configuration failures raise before launching replay. It then reproduces exactly `authentication.report` under the configured budget. Its immutable result contains:
+
+- `authentication`: the existing trusted-origin result, including original report bytes and verifier evaluation time. Its own `decision_reproduced=None` continues to mean the authentication step did not replay anything.
+- `decision_reproduced`: whether the bounded replay step succeeded.
+- `replay_error`: a stable replay failure code, or `None` on success.
+- `requirements_satisfied`: true only when both trusted origin and bounded reproduction succeeded. Callers requiring both must check this property explicitly, not merely the truthiness of the returned object.
+- `target_effect_verified`: always false. Neither signature nor replay establishes a real-world effect.
+
+A replay timeout, unsupported host, worker crash, or invalid report preserves the independent authentication result but sets `decision_reproduced=False` and `requirements_satisfied=False`. Unexpected internal errors propagate, rather than producing success. The supplied `now` is the verifier's chosen evaluation instant; verification does not claim fresh validity at a later time or accept artifact-provided clock values automatically.
+
+Nine tests cover sequencing, all signing replay failures, malformed metadata and keys, authentication rejection before replay, exact-byte propagation, independent claims, error handling, unsupported platforms, and a real Linux signed-report round trip. The real test also has a trusted key sign a false report through the low-level primitive and confirms the combined verifier rejects its replay. CI repeats these tests against the installed wheel.
+
 ## Gates before authenticated verification can ship
 
 1. Implemented: maintained Ed25519 backend, standard vector, wrong-key and tampering tests. No handwritten cryptography.
 2. Implemented: explicit trust-policy parsing and key, issuer, audience, lifetime, expiry, and revocation rules with negative tests.
-3. Implemented for Linux: [bounded replay](bounded-replay.md) with input/depth/output caps, a parent deadline, and kernel CPU/address-space limits. Other platforms fail closed. Composing this with signing and authentication remains pending.
+3. Implemented for Linux: [bounded replay](bounded-replay.md) with input/depth/output caps, a parent deadline, and kernel CPU/address-space limits. Other platforms fail closed. Composed signing and verification APIs now use this replay gate.
 4. Add signer/key custody interfaces and no-overwrite CLI output, plus installed-package end-to-end tests.
 5. Verify that legacy unsigned replay remains compatible and never upgrades itself to authenticated origin.
-6. Review the combined failure behavior before advertising this as authenticated evidence. The current primitives do not satisfy the remaining replay and key-custody gates.
+6. Review the combined failure behavior before advertising this as authenticated evidence. The current APIs still require key-custody/CLI integration and combined failure review before a user-facing release.

@@ -46,9 +46,13 @@ def main(argv: list[str] | None = None) -> int:
     recover.add_argument("--run-id")
     replay = sub.add_parser("replay", help="verify a run report without live calls")
     replay.add_argument("report", type=Path)
+    from . import evidence_cli
+    evidence_cli.add_commands(sub)
     args = parser.parse_args(argv)
 
     try:
+        if args.command in evidence_cli.COMMANDS:
+            return evidence_cli.run(args)
         if args.command == "init":
             print(init_project(args.directory, args.demo_data))
             return 0

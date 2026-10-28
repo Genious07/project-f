@@ -1,5 +1,16 @@
 # Development progress
 
+## Evidence milestone: key files and command-line workflow
+
+Implemented on 28 October 2026.
+
+- Added explicit key generation/public export and signing/verification commands. Private keys are unencrypted owner-only POSIX files, never printed or automatically trusted.
+- Bounded input reads reject symlinks and non-regular files. Private keys additionally require current-user ownership, no group/other permissions, and no hard links. Parent directories must be trusted.
+- Complete output files are published atomically without replacing existing destinations. Failed signing produces no signed output; failed verification returns distinct authentication/replay status and nonzero exit codes.
+- Added seven tests including permissions, key parsing, symlink/FIFO/directory/size rejection, write failure cleanup, output preservation, and a real Linux command-line round trip. Installed-wheel checks repeat these tests outside the checkout.
+
+Local validation: 201 tests discovered with six Linux-only tests skipped on macOS. Hosted Linux and package checks remain required. The prior run's macOS package job was cancelled before execution; its retry passed, completing all ten prior CI jobs. Next: review combined failure behavior and operational documentation before declaring the evidence workflow ready for release. The project license decision remains pending.
+
 ## Evidence milestone: composed signing and verification
 
 Implemented on 27 October 2026.

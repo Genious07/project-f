@@ -1,6 +1,6 @@
 # Resource-bounded replay
 
-Implemented on 26 October 2026 as an experimental Linux-only API. This is a separate step toward authenticated evidence. The [evidence workflow APIs](authenticated-evidence.md#composed-report-workflow) compose it with signing and authentication as of 27 October. Key-file handling and CLI signing remain pending.
+Implemented on 26 October 2026 as an experimental Linux-only API. This is a separate step toward authenticated evidence. The [evidence workflow APIs](authenticated-evidence.md#composed-report-workflow) compose it with signing and authentication as of 27 October. POSIX key-file handling and Linux CLI signing are described in [evidence commands](evidence-cli.md).
 
 ```python
 from foresee.bounded_replay import ReplayBudget, replay_bounded

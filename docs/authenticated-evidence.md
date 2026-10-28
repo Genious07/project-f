@@ -1,6 +1,6 @@
 # Authenticated evidence: draft v1 design
 
-Design and format scaffolding implemented on 24 October 2026; signature and trust primitives added on 25 October. **This remains an experimental protocol profile, not a complete report-signing workflow.** Ed25519 statement signing and trusted-key authentication are implemented. Linux resource-bounded semantic replay was added on 26 October. Composed signing/verification APIs were added on 27 October. Key-file custody and signing CLI commands are still pending. Existing unsigned replay continues to report `origin_authenticated: false`.
+Design and format scaffolding implemented on 24 October 2026; signature and trust primitives added on 25 October. **This remains an experimental protocol profile, not a complete report-signing workflow.** Ed25519 statement signing and trusted-key authentication are implemented. Linux resource-bounded semantic replay was added on 26 October. Composed signing/verification APIs were added on 27 October. Owner-only key files and [CLI commands](evidence-cli.md) were added on 28 October. The protocol remains experimental. Existing unsigned replay continues to report `origin_authenticated: false`.
 
 ## Philosophy and claims
 
@@ -145,7 +145,7 @@ if not result.requirements_satisfied:
     raise ValueError(result.replay_error)
 ```
 
-Both functions accept an optional `ReplayBudget` as `budget`. Inputs are already bounded byte strings; file custody and bounded file reads belong to the future CLI. Signing derives the fingerprint from the supplied key, validates the report/metadata, reproduces the exact report bytes under the replay budget, and only then calls the signing primitive. A replay failure raises `ReplayFailure` without returning any envelope. No private key is supplied to the replay subprocess. Signing does not automatically establish trust in that key or enforce a verifier's policy.
+Both functions accept an optional `ReplayBudget` as `budget`. The API accepts bounded byte strings; the CLI adds file custody and bounded reads. Signing derives the fingerprint from the supplied key, validates the report/metadata, reproduces the exact report bytes under the replay budget, and only then calls the signing primitive. A replay failure raises `ReplayFailure` without returning any envelope. No private key is supplied to the replay subprocess. Signing does not automatically establish trust in that key or enforce a verifier's policy.
 
 Verification authenticates the envelope under explicit policy first. Authentication or configuration failures raise before launching replay. It then reproduces exactly `authentication.report` under the configured budget. Its immutable result contains:
 
@@ -164,6 +164,6 @@ Nine tests cover sequencing, all signing replay failures, malformed metadata and
 1. Implemented: maintained Ed25519 backend, standard vector, wrong-key and tampering tests. No handwritten cryptography.
 2. Implemented: explicit trust-policy parsing and key, issuer, audience, lifetime, expiry, and revocation rules with negative tests.
 3. Implemented for Linux: [bounded replay](bounded-replay.md) with input/depth/output caps, a parent deadline, and kernel CPU/address-space limits. Other platforms fail closed. Composed signing and verification APIs now use this replay gate.
-4. Add signer/key custody interfaces and no-overwrite CLI output, plus installed-package end-to-end tests.
+4. Implemented: owner-only POSIX key files, bounded regular-file reads, no-overwrite CLI output, and installed-package end-to-end tests. Keys are unencrypted; encrypted stores/HSM integration remain outside this milestone.
 5. Verify that legacy unsigned replay remains compatible and never upgrades itself to authenticated origin.
-6. Review the combined failure behavior before advertising this as authenticated evidence. The current APIs still require key-custody/CLI integration and combined failure review before a user-facing release.
+6. Review the combined failure behavior before advertising this as authenticated evidence. The current implementation remains experimental pending the final combined failure review and release gate.

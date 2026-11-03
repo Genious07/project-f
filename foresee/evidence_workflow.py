@@ -20,6 +20,8 @@ def sign_report(report, private_key, *, issuer, audience, issued_at, expires_at,
     for the signer. Only report bytes and budgets enter the replay subprocess.
     """
     budget = _budget(budget)
+    if type(report) is not bytes or len(report) > budget.max_report_bytes:
+        raise ReplayFailure('input_limit')
     private_type, _, _ = _backend()
     if not isinstance(private_key, private_type):
         raise ValueError('an Ed25519 private key object is required')
@@ -36,6 +38,9 @@ class EvidenceVerification:
     decision_reproduced: bool
     replay_error: str | None
     target_effect_verified: bool = field(default=False, init=False)
+
+    def __bool__(self):
+        raise TypeError('check requirements_satisfied explicitly')
 
     @property
     def requirements_satisfied(self):

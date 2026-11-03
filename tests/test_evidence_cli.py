@@ -1,4 +1,6 @@
 import json
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 import os
 from pathlib import Path
 import subprocess
@@ -25,6 +27,51 @@ class EvidenceCliTests(unittest.TestCase):
     def cli(self, *args):
         return subprocess.run([sys.executable, '-m', 'foresee', *map(str, args)],
                               capture_output=True, text=True, timeout=20)
+
+    def test_read_limits_are_validated_before_open(self):
+        with patch('foresee.evidence_files.os.open') as opened:
+            for limit in (-1, 0, True, 1.5, None):
+                with self.assertRaises(ValueError):
+                    read_bounded(self.key, limit)
+            opened.assert_not_called()
+
+    def test_concurrent_publication_has_exactly_one_complete_winner(self):
+        barrier = Barrier(4)
+        payloads = [bytes([index]) * 65536 for index in range(4)]
+        def publish(payload):
+            barrier.wait(timeout=5)
+            try:
+                write_new(self.key, payload)
+                return payload
+            except FileExistsError:
+                return None
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(publish, payloads))
+        winners = [value for value in results if value is not None]
+        self.assertEqual(len(winners), 1)
+        self.assertEqual(self.key.read_bytes(), winners[0])
+        self.assertEqual(list(self.root.glob('.foresee-*')), [])
+
+    def test_verification_rejects_revoked_expired_and_wrong_issuer_before_replay(self):
+        from foresee.evidence_auth import sign_statement
+        from foresee.evidence_format import prepare_statement
+        from foresee.catalog import stable_digest
+        public = generate_key(self.key)
+        report = {'report_version': '0.0.2', 'evidence': {'version': 1, 'complete': True}}
+        report['report_digest'] = stable_digest(report)
+        envelope = self.root / 'envelope.json'
+        envelope.write_bytes(sign_statement(prepare_statement(json.dumps(report).encode(),
+                            keyid=public['keyid'], issuer='team', audience='audit', issued_at=100, expires_at=200), load_key(self.key)))
+        entry = dict(keyid=public['keyid'], public_key=public['public_key'], issuer='team',
+                     audiences=['audit'], not_before=50, not_after=300, status='active')
+        policy = self.root / 'policy.json'
+        for change, now in (({'status': 'revoked'}, 150), ({}, 200), ({'issuer': 'another'}, 150)):
+            policy.write_text(json.dumps({'version': 1, 'keys': [entry | change]}))
+            result = self.cli('evidence-verify', envelope, '--policy', policy, '--issuer', 'team',
+                              '--audience', 'audit', '--now', now, '--max-lifetime', 100)
+            self.assertEqual(result.returncode, 1)
+            self.assertEqual(result.stdout, '')
+            self.assertNotIn('bounded replay', result.stderr)
 
     def test_key_generation_public_export_and_no_overwrite(self):
         created = self.cli('evidence-keygen', '--output', self.key)

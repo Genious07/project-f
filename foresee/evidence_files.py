@@ -12,6 +12,8 @@ from .evidence_format import _b64, _encode, _json, _unb64, key_id
 
 
 def read_bounded(path, maximum, *, private=False):
+    if type(maximum) is not int or maximum < 1:
+        raise ValueError('byte limit must be a positive integer')
     if os.name != 'posix':
         raise ValueError('evidence file custody requires POSIX')
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)

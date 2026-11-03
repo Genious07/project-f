@@ -80,3 +80,5 @@ Optional real-model integration: [OpenAI adapter and cost reservations](docs/ope
 Storage adapter contract checks: [resource-adapter conformance kit](docs/adapter-conformance.md).
 
 Experimental Ed25519 signing primitives and explicit trusted-key verification: [authenticated-evidence design](docs/authenticated-evidence.md). Install the optional `evidence` extra to use them. [Linux bounded replay](docs/bounded-replay.md) is available separately. The [composed signing and verification APIs](docs/authenticated-evidence.md#composed-report-workflow) require bounded replay. [Key-file and CLI commands](docs/evidence-cli.md) are available as an experimental POSIX workflow, with signing and successful combined verification requiring Linux; a trusted signature alone does not prove execution or target effects.
+
+Evidence workflow review and operational limits: [internal review](docs/evidence-review.md).

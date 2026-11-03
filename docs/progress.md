@@ -1,5 +1,16 @@
 # Development progress
 
+## Evidence milestone: combined failure and operational review
+
+Implemented on 3 November 2026.
+
+- Reviewed format/trust validation, signing and replay ordering, process limits, key custody, output publication, CLI exits, and unsigned compatibility. Recorded scope, acceptance cases, operational procedures, and release conditions in the internal review.
+- Fixed signing's configured byte limit to reject before backend access or statement serialization. Invalid file-read limits now reject before opening a file.
+- Disabled implicit boolean conversion of combined verification results, preventing a failed replay result from being accepted through Python's default object truthiness. Callers must inspect `requirements_satisfied` explicitly.
+- Added five regression tests, including concurrent publication with exactly one complete winner and CLI rejection of revoked/expired/wrong-issuer policies. Strengthened legacy replay's negative authentication/effect assertions.
+
+Local validation: 206 tests discovered, six Linux-only tests skipped on macOS. Hosted Linux and installed-package checks remain required. This is an internal implementation review, not an independent security audit or production certification. Next: choose the project license and complete the tested-commit release process; independent security review and stronger key custody remain recommended before higher-trust deployments.
+
 ## Evidence milestone: key files and command-line workflow
 
 Implemented on 28 October 2026.

@@ -31,6 +31,26 @@ class EvidenceWorkflowTests(unittest.TestCase):
         self.report = fmt._encode(report)
         self.envelope = sign_statement(fmt.prepare_statement(self.report, keyid=self.keyid, **self.metadata), self.key)
 
+    def test_signing_input_cap_precedes_backend_and_serialization(self):
+        with patch.object(workflow, '_backend') as backend, \
+                patch.object(workflow, 'prepare_statement') as prepare, \
+                patch.object(workflow, 'replay_bounded') as replay:
+            for value in (self.report, bytearray(b'x'), 'x'):
+                with self.assertRaises(ReplayFailure) as raised:
+                    workflow.sign_report(value, self.key, budget=ReplayBudget(max_report_bytes=1), **self.metadata)
+                self.assertEqual(raised.exception.code, 'input_limit')
+            backend.assert_not_called()
+            prepare.assert_not_called()
+            replay.assert_not_called()
+
+    def test_verification_cannot_be_mistaken_for_a_boolean(self):
+        for effect in (None, ReplayFailure('timeout')):
+            with patch.object(workflow, 'replay_bounded', return_value=ReplayedReport(), side_effect=effect):
+                result = workflow.verify_report(self.envelope, self.policy, **self.options)
+            with self.assertRaisesRegex(TypeError, 'requirements_satisfied'):
+                bool(result)
+            self.assertEqual(result.requirements_satisfied, effect is None)
+
     def test_signing_occurs_only_after_replay_and_preserves_bytes(self):
         events = []
         def replay(raw, *, budget):

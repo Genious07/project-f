@@ -130,6 +130,8 @@ class ReplayTests(unittest.TestCase):
         result = replay_report(self.path)
         self.assertTrue(result["checksum_valid"])
         self.assertFalse(result["decision_reproduced"])
+        self.assertFalse(result["origin_authenticated"])
+        self.assertFalse(result["target_effect_verified"])
 
     def test_no_winner_stale_and_multiple_operations_reproduce(self):
         source = SOURCE.replace("return commit chosen to catalog;", "let first = commit chosen to catalog; let next = select trials minimize unresolved; return commit next to catalog;")

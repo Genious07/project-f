@@ -61,7 +61,7 @@ The outer DSSE key ID is only a lookup hint. Foresee repeats it inside the signe
 
 Keep report version 0.0.2 and evidence version 1 unchanged. The statement wraps the full original report as bytes, including its existing `report_digest`; it does not add a signature field to the report or change the compiler's program digest.
 
-This profile requires an explicit `evidence.complete: true`, no redaction, and a valid ordinary report checksum. Incomplete provider/error reports and redacted copies remain unsigned diagnostic artifacts under this profile. Signing a complete report is planned to require successful semantic replay first. Parsing alone does not establish that the report has all the fields needed for replay.
+This profile requires an explicit `evidence.complete: true`, no redaction, and a valid ordinary report checksum. Incomplete provider/error reports and redacted copies remain unsigned diagnostic artifacts under this profile. The high-level signer requires successful bounded semantic replay first. Parsing alone does not establish that the report has all the fields needed for replay.
 
 Whitespace changes to the embedded report change its byte digest and require a new signature, even if its existing semantic checksum remains unchanged. A redacted artifact is a different document, not a substitute signature for the original. No files are overwritten by the current format helpers.
 
@@ -90,7 +90,7 @@ Key generation must be explicit. Private keys must never appear in report JSON, 
 
 For planned rotation, provision the new public key through the trusted policy channel, allow a bounded overlap of two active keys, switch the signer, then expire or revoke the old key. Each artifact still has one signature. On compromise, revoke immediately and publish a new trusted policy. Offline verifiers using an old policy cannot know about a new revocation, so policy distribution/freshness is an operational requirement. Do not claim global revocation enforcement.
 
-## Planned sign and verify workflows
+## Sign and verify workflows
 
 Signing: bounded-read the report, require the supported complete/unredacted format and checksum, reproduce the decision under an execution budget, construct metadata from explicit caller inputs, obtain the key fingerprint, prepare the statement, sign its DSSE bytes, and write a new envelope without replacing existing files. Failure at any stage must produce no purported signed output.
 
@@ -152,7 +152,7 @@ Verification authenticates the envelope under explicit policy first. Authenticat
 - `authentication`: the existing trusted-origin result, including original report bytes and verifier evaluation time. Its own `decision_reproduced=None` continues to mean the authentication step did not replay anything.
 - `decision_reproduced`: whether the bounded replay step succeeded.
 - `replay_error`: a stable replay failure code, or `None` on success.
-- `requirements_satisfied`: true only when both trusted origin and bounded reproduction succeeded. Callers requiring both must check this property explicitly, not merely the truthiness of the returned object.
+- `requirements_satisfied`: true only when both trusted origin and bounded reproduction succeeded. Callers requiring both must check this property explicitly. As of 3 November, implicit boolean conversion raises `TypeError` for both successful and failed results.
 - `target_effect_verified`: always false. Neither signature nor replay establishes a real-world effect.
 
 A replay timeout, unsupported host, worker crash, or invalid report preserves the independent authentication result but sets `decision_reproduced=False` and `requirements_satisfied=False`. Unexpected internal errors propagate, rather than producing success. The supplied `now` is the verifier's chosen evaluation instant; verification does not claim fresh validity at a later time or accept artifact-provided clock values automatically.
@@ -165,5 +165,5 @@ Nine tests cover sequencing, all signing replay failures, malformed metadata and
 2. Implemented: explicit trust-policy parsing and key, issuer, audience, lifetime, expiry, and revocation rules with negative tests.
 3. Implemented for Linux: [bounded replay](bounded-replay.md) with input/depth/output caps, a parent deadline, and kernel CPU/address-space limits. Other platforms fail closed. Composed signing and verification APIs now use this replay gate.
 4. Implemented: owner-only POSIX key files, bounded regular-file reads, no-overwrite CLI output, and installed-package end-to-end tests. Keys are unencrypted; encrypted stores/HSM integration remain outside this milestone.
-5. Verify that legacy unsigned replay remains compatible and never upgrades itself to authenticated origin.
-6. Review the combined failure behavior before advertising this as authenticated evidence. The current implementation remains experimental pending the final combined failure review and release gate.
+5. Checked: legacy unsigned replay remains compatible and does not upgrade itself to authenticated origin or target-effect verification.
+6. Completed an internal combined failure review on 3 November: [findings, acceptance matrix, and operational limits](evidence-review.md). This is not an independent security audit. Release remains subject to the project license decision and the tested-commit release gate.

@@ -4,12 +4,12 @@ Day 14 packages `foresee-semantics` (check/build compiler) and `foresee-lsp` (st
 
 ## Download and use
 
-Open the repository's **Actions > Verify** run for the desired commit and download `native-ubuntu-24.04` or `native-macos-14`. Unzip the GitHub artifact wrapper. It contains a `.tar.gz` archive and adjacent `.sha256` file. Select the archive matching your machine:
+Open the repository's **Actions > Verify** run for the desired commit and download `native-ubuntu-24.04` or `native-macos-latest`. Unzip the GitHub artifact wrapper. It contains a `.tar.gz` archive and adjacent `.sha256` file. Select the archive matching your machine:
 
 | Runner | Target | Scope |
 | --- | --- | --- |
 | Ubuntu 24.04 x86-64 | `x86_64-unknown-linux-gnu` | Tested on Ubuntu 24.04; glibc/system libraries required |
-| macOS 14 Apple Silicon | `aarch64-apple-darwin` | Tested on macOS 14 ARM64; macOS system libraries required |
+| macOS Apple Silicon | `aarch64-apple-darwin` | Tested on the current GitHub macOS ARM64 runner; macOS system libraries required. Older macOS compatibility is not established by this job. |
 
 Older operating systems, Intel Macs, Linux ARM64, Windows, and static/musl builds are not validated. These are unsigned CI previews, not a published v0.2 release. There is no installer or automatic PATH modification.
 

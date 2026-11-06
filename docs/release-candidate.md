@@ -1,0 +1,46 @@
+# Draft next preview release
+
+Prepared on 6 November 2026. This document is a reviewable release draft, not a published release or a claim that the repository is licensed for distribution. Suggested version mapping, still unapplied: tag `v0.2.0-alpha.1`, Python `0.2.0a1`, native crates `0.2.0-alpha.1`. Existing package versions and the published alpha remain unchanged.
+
+## Draft release description
+
+Foresee's next preview adds a native compiler and editor foundation, bounded model proposals, and an experimental signed-evidence workflow. It keeps decision execution in the Python runtime while checking source programs and emitting matching typed IR through the Rust compiler.
+
+Included scope:
+
+- Native source checking and IR generation with type, effect, snapshot-lineage, and selection-ownership checks. Linux x86-64 and macOS ARM64 preview archives include the compiler, LSP executable, example program/IR, checksums, manifest, and Cargo dependency inventory.
+- A language-server foundation supporting diagnostics, full-document edits, symbols, and type/lineage hover. Completion, rename, incremental analysis, and an editor extension are not included.
+- Bounded model-provider transport and an opt-in OpenAI Responses adapter with configured token/cost limits. Tests use mocks and credential-free worker checks; live account/model compatibility has not been verified.
+- A twelve-check adapter conformance kit for the current Catalog/Patch domain. SQLite remains the implemented transactional adapter.
+- Experimental Ed25519 report signing, explicit trusted-key policy, Linux bounded replay, and key-generation/signing/verification commands. Verification keeps trusted origin, reproduced decision, and real target effects separate.
+
+The evidence workflow requires the optional `evidence` dependency. POSIX key files are unencrypted and owner-only; full signing and combined verification require Linux. The worker has resource limits but is not a general OS sandbox. Signatures and replay do not establish that model calls, database observations, or target effects happened in the real world. The internal review is available in [evidence-review.md](evidence-review.md); it is not an independent security audit.
+
+Compatibility notes: existing unsigned replay remains unauthenticated. Combined verification results require explicit `.requirements_satisfied` checks; implicit boolean conversion raises `TypeError`. Native compiler limits and supported syntax remain as documented in the compiler preview report. This is a preview, not a production-stability promise.
+
+Validation at the preparation stage: 212 Python tests in the suite; six are Linux-only and skipped on macOS. The complete Verify workflow also checks native compiler parity/fuzzing, editor integration, Python package installation, the runtime container, and both native archive targets. A final release description must link to the successful workflow for the exact release commit and report that run's results, not reuse this draft as evidence.
+
+## Source preflight
+
+Once the operator chooses a license and applies version metadata:
+
+```sh
+python tools/check_release_source.py \
+  --python-version 0.2.0a1 \
+  --native-version 0.2.0-alpha.1 \
+  --license-id SELECTED_SPDX_EXPRESSION
+```
+
+The last argument is a placeholder; the tool does not select or recommend a license. It checks exact declaration equality, not SPDX syntax validity, legal suitability, or license-text authenticity. It requires a nonempty tracked regular `LICENSE` file, explicit Python `project.license-files` inclusion, consistent declarations across the explicit Rust workspace members, consistent versions in Cargo.lock, and a clean checkout. Metadata inheritance and workspace globs are not supported by this repository-specific preflight.
+
+Exit 0 means only `source_ready=true`. Exit 1 means source prerequisites failed or could not be read. `publication_authorized` is always false. The tool performs no writes, builds, network calls, tags, or publication. Omitting `--license-id` intentionally fails the license-selection check.
+
+## Remaining concrete work
+
+1. The project owner chooses the license. Add the reviewed text and any required notices, then align Python and Rust declarations. No license has been chosen by this draft.
+2. Confirm release versions and update Python/native metadata and Cargo.lock together. Include LICENSE/notices in wheel, source distribution, and both native archives. The current native archive builder/verifier has an exact member set without LICENSE and must be updated once the chosen files are known; do not publish its present output as a licensed release.
+3. Update the native SBOM's currently undeclared-project-license wording and inspect dependency declarations/notices. The SBOM covers the Cargo graph, not Python dependencies, OS libraries, or binary linkage. The optional crypto backend also needs its distribution notices checked.
+4. Commit the complete candidate and run source preflight from a clean checkout. Require all ten Verify jobs to pass on that exact commit. Download that run's artifacts, inspect packaged metadata/licenses and native manifests, and retain their checksums/provenance.
+5. Finalize these notes using the exact tested version, commit, workflow, and artifacts. Create a new prerelease and attach those artifacts without rebuilding from a different checkout or replacing the existing alpha.
+
+A future release tool must enforce these artifact and hosted-CI gates before publication. This source preflight intentionally does not imply those checks have happened.

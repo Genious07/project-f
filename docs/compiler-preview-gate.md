@@ -75,3 +75,5 @@ Before publishing:
 3. Implemented on 22 October: [resource-adapter conformance kit](adapter-conformance.md), with twelve shared checks for the current Catalog/Patch domain. Existing SQLite process-crash and reconciliation tests remain required.
 4. Designed on 24 October: [authenticated-evidence profile](authenticated-evidence.md), with threat model, key ownership/rotation, verification rules, and tested format scaffolding. Extended on 25 October with Ed25519 statement signing and explicit trusted-key authentication. Linux bounded replay added on 26 October; composed signing/verification APIs added on 27 October. Owner-only key custody and no-overwrite CLI commands added on 28 October. Internal combined failure review completed on 3 November; see the evidence review for scope and remaining release conditions.
 5. Add a second transactional adapter only after it passes the conformance kit. Reassess native effect execution after these runtime contracts are stable.
+
+Release preparation: [candidate notes and preflight procedure](release-candidate.md). The source preflight is read-only and does not authorize publishing.

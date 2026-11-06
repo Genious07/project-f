@@ -1,5 +1,16 @@
 # Development progress
 
+## Release preparation: source preflight and candidate notes
+
+Implemented on 6 November 2026.
+
+- Added a read-only source preflight for explicit intended versions, operator-selected license declaration, tracked LICENSE, Python license-file metadata, workspace versions, Cargo lockfile versions, and a clean checkout.
+- The preflight returns nonzero for missing prerequisites and never authorizes publication. Artifact license/notice inclusion, exact-commit CI, and provenance remain separate checks.
+- Drafted candidate release notes covering native compiler/LSP, Python runtime/provider work, and the experimental evidence workflow, including platform and trust limitations.
+- Added six tests covering missing/mismatched metadata, license selection, dirty state, lockfile/version drift, and separation between source readiness and publication.
+
+Validation: 212 tests discovered, six Linux-only tests skipped locally on macOS. The current source preflight intentionally fails because license and release versions have not been selected/applied. No tag, version bump, or GitHub release was created. Next: resolve the license, align metadata and archive contents, then build and verify the exact release candidate.
+
 ## Evidence milestone: combined failure and operational review
 
 Implemented on 3 November 2026.

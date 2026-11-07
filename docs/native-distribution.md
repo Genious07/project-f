@@ -51,3 +51,5 @@ The verifier bounds archive size, rejects unexpected paths, links, duplicate mem
 ## Next gate
 
 Day 15 runs all correctness and distribution gates, documents parity and outstanding limits, and considers a versioned compiler preview. Public release readiness also requires resolving the project's license declaration and distribution terms.
+
+Candidate release checks: use the [strict native verification procedure](release-candidate.md#native-candidate-verification) with an explicit commit, version, and selected license. Development archives may omit LICENSE/NOTICE; candidate release mode requires LICENSE and matching manifest declarations. Present previews remain unlicensed pending the project decision.

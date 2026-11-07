@@ -70,3 +70,72 @@ class NativeDistributionTests(unittest.TestCase):
         self.assertEqual(packages['dep']['checksums'][0]['checksumValue'], 'a' * 64)
         self.assertIn({'spdxElementId': packages['foresee']['SPDXID'], 'relationshipType': 'DEPENDS_ON', 'relatedSpdxElement': packages['dep']['SPDXID']}, result['relationships'])
         self.assertNotIn('local', json.dumps(result))
+
+
+class NativeReleaseTests(unittest.TestCase):
+    expected = ('a' * 40, '0.2.0-alpha.1', 'TEST-ID')
+
+    def payload(self, **changes):
+        files = NativeDistributionTests().payload()
+        files['LICENSE'] = b'TEST FIXTURE, not a project license'
+        manifest = dict(schema_version=1, source_commit='a' * 40, source_dirty=False,
+                        version='0.2.0-alpha.1', project_license='TEST-ID', preview=True)
+        manifest.update(changes)
+        manifest['sha256'] = {n: digest(v) for n, v in files.items() if n != 'manifest.json'}
+        files['manifest.json'] = encoded(manifest)
+        return files
+
+    def test_release_accepts_matching_candidate_and_preserves_license(self):
+        files = self.payload()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            unpack(archive_bytes(files), root, release=self.expected)
+            self.assertEqual((root / 'LICENSE').read_bytes(), files['LICENSE'])
+
+    def test_release_mismatch_rejected_before_extraction(self):
+        for changes in ({'source_commit': 'b' * 40}, {'source_dirty': True}, {'source_dirty': 0},
+                        {'version': '0.0.1'}, {'project_license': None}, {'project_license': 'OTHER'},
+                        {'preview': False}):
+            with self.subTest(changes=changes), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                with self.assertRaises(ValueError):
+                    unpack(archive_bytes(self.payload(**changes)), root, release=self.expected)
+                self.assertEqual(list(root.iterdir()), [])
+
+    def test_release_requires_license_and_full_commit(self):
+        for files, expected in ((NativeDistributionTests().payload(), self.expected),
+                                (self.payload(), ('a' * 7, '0.2.0-alpha.1', 'TEST-ID'))):
+            with tempfile.TemporaryDirectory() as temporary, self.assertRaises(ValueError):
+                unpack(archive_bytes(files), Path(temporary), release=expected)
+
+    def test_license_tampering_is_checked(self):
+        files = self.payload()
+        files['LICENSE'] = b'replaced'
+        with tempfile.TemporaryDirectory() as temporary, self.assertRaises(ValueError):
+            unpack(archive_bytes(files), Path(temporary), release=self.expected)
+
+    def test_legal_files_are_optional_but_strict_when_present(self):
+        from tools.package_native import legal_files
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.assertEqual(legal_files(root), {})
+            (root / 'LICENSE').write_text('test text')
+            (root / 'NOTICE').write_text('test notice')
+            self.assertEqual(set(legal_files(root)), {'LICENSE', 'NOTICE'})
+            (root / 'NOTICE').write_text(' ')
+            with self.assertRaises(ValueError):
+                legal_files(root)
+            (root / 'NOTICE').unlink()
+            (root / 'NOTICE').symlink_to(root / 'LICENSE')
+            with self.assertRaises(ValueError):
+                legal_files(root)
+
+    def test_workspace_license_requires_unanimous_declaration(self):
+        from tools.package_native import project_license
+        metadata = {'workspace_members': ['a', 'b'], 'packages': [
+                    {'id': 'a', 'license': 'TEST-ID'}, {'id': 'b', 'license': 'TEST-ID'}]}
+        self.assertEqual(project_license(metadata), 'TEST-ID')
+        metadata['packages'][1]['license'] = 'OTHER'
+        self.assertIsNone(project_license(metadata))
+        metadata['packages'].pop()
+        self.assertIsNone(project_license(metadata))

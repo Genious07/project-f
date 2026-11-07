@@ -1,5 +1,16 @@
 # Development progress
 
+## Release preparation: native artifact provenance and legal-file checks
+
+Implemented on 7 November 2026.
+
+- Native archives now include bounded, nonempty root LICENSE/NOTICE files when present and hash them in the manifest. No license is selected or generated automatically.
+- Manifest and SBOM record a project license only when all workspace packages declare the same value. Missing/inconsistent declarations remain explicit.
+- Added strict candidate verification requiring an operator-supplied full commit, version, and license declaration, clean-source boolean, preview marker, and LICENSE before extraction or binary execution.
+- Added six tests for matching candidates, provenance/version/dirty/license rejection, missing/tampered legal files, and unanimous workspace metadata.
+
+Validation: 218 tests discovered; six Linux-only tests skipped locally on macOS. The actual macOS development archive passed standalone compiler/LSP verification and was rejected by strict release mode before extraction, as expected. Hosted CI remains required. The previous run's capacity-cancelled Python macOS job passed on retry, completing all ten prior checks. No version, tag, license, or release was created. Next: resolve the project license and version decisions, inspect Python and native packaged legal content, and complete the exact-commit release gate.
+
 ## Release preparation: source preflight and candidate notes
 
 Implemented on 6 November 2026.

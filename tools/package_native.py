@@ -32,6 +32,28 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def project_license(metadata):
+    members = set(metadata['workspace_members'])
+    values = [package.get('license') for package in metadata['packages'] if package['id'] in members]
+    return values[0] if values and len(values) == len(members) and all(values) and len(set(values)) == 1 else None
+
+
+def legal_files(root):
+    files = {}
+    for name in ('LICENSE', 'NOTICE'):
+        path = root / name
+        if path.is_symlink():
+            raise ValueError('legal files must not be symlinks')
+        if path.exists():
+            if not path.is_file() or path.stat().st_size > 1_000_000:
+                raise ValueError('legal files must be bounded regular files')
+            raw = path.read_bytes()
+            if not raw.strip():
+                raise ValueError('legal files must not be empty')
+            files[name] = raw
+    return files
+
+
 def sbom(metadata, lock, stamp, name):
     packages = sorted(metadata['packages'], key=lambda p: p['id'])
     ids = {p['id']: f'SPDXRef-Package-{i}' for i, p in enumerate(packages)}
@@ -41,7 +63,7 @@ def sbom(metadata, lock, stamp, name):
         'SPDXID': 'SPDXRef-DOCUMENT', 'name': name,
         'creationInfo': {'created': stamp, 'creators': ['Tool: foresee-package-native']},
         'documentNamespace': 'https://spdx.org/spdxdocs/' + str(uuid.uuid4()),
-        'documentComment': 'Cargo dependency graph including build dependencies. Not a binary linkage or OS library inventory. Project license is undeclared.',
+        'documentComment': 'Cargo dependency graph including build dependencies. Not a binary linkage or OS library inventory. ' + ('Workspace license declaration: ' + project_license(metadata) if project_license(metadata) else 'Project license is undeclared or inconsistent.'),
         'packages': [], 'relationships': [],
     }
     for p in packages:
@@ -95,8 +117,9 @@ def main():
     files.update({'examples/repair.fore': source, 'examples/repair.ir.json': encoded(compile_source(source.decode())),
                   'README.md': (ROOT / 'docs/native-distribution.md').read_bytes(),
                   'sbom.spdx.json': encoded(sbom(metadata, tomllib.loads((ROOT / 'Cargo.lock').read_text()), stamp, name))})
+    files.update(legal_files(ROOT))
     files['manifest.json'] = encoded({'schema_version': 1, 'preview': True, 'version': version,
-        'source_commit': commit, 'source_dirty': dirty, 'target': target, 'rustc': rustc,
+        'source_commit': commit, 'source_dirty': dirty, 'project_license': project_license(metadata), 'target': target, 'rustc': rustc,
         'created': stamp, 'sha256': {path: digest(data) for path, data in files.items()}})
     args.output.mkdir(parents=True, exist_ok=True)
     archive = args.output / (name + '.tar.gz')

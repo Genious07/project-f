@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import platform
+import re
 import subprocess
 import sys
 import tarfile
@@ -16,27 +17,41 @@ from tools.check_lsp import verify as verify_lsp
 
 FILES = {'bin/foresee-semantics', 'bin/foresee-lsp', 'examples/repair.fore',
          'examples/repair.ir.json', 'README.md', 'sbom.spdx.json', 'manifest.json'}
+OPTIONAL_FILES = {'LICENSE', 'NOTICE'}
 MAX_ARCHIVE = 128 * 1024 * 1024
 
 
-def unpack(data, directory):
+def unpack(data, directory, *, release=None):
     """Reject unknown members, links, duplicate paths, and oversized payloads."""
     payload = {}
     total = 0
     with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
         for item in archive:
-            if item.name not in FILES or item.name in payload or not item.isfile():
+            if item.name not in FILES | OPTIONAL_FILES or item.name in payload or not item.isfile():
                 raise ValueError(f'unsafe archive member: {item.name}')
             total += item.size
             if item.size < 0 or total > MAX_ARCHIVE:
                 raise ValueError('archive payload exceeds limit')
             payload[item.name] = archive.extractfile(item).read()
-    if set(payload) != FILES:
+    if not FILES <= set(payload):
         raise ValueError('archive is incomplete')
     manifest = json.loads(payload['manifest.json'])
     expected = {name: hashlib.sha256(content).hexdigest() for name, content in payload.items() if name != 'manifest.json'}
     if manifest.get('schema_version') != 1 or manifest.get('sha256') != expected:
         raise ValueError('payload checksum mismatch')
+    for name in OPTIONAL_FILES & payload.keys():
+        if len(payload[name]) > 1_000_000 or not payload[name].strip():
+            raise ValueError('invalid legal file')
+    if release is not None:
+        commit, version, license_id = release
+        if not isinstance(commit, str) or not re.fullmatch(r'[0-9a-f]{40}', commit):
+            raise ValueError('release requires a full lowercase commit SHA')
+        if not all(type(value) is str and value for value in (version, license_id)):
+            raise ValueError('release version and selected license are required')
+        if (manifest.get('source_commit') != commit or manifest.get('source_dirty') is not False
+                or manifest.get('version') != version or manifest.get('project_license') != license_id
+                or manifest.get('preview') is not True or 'LICENSE' not in payload):
+            raise ValueError('release provenance, version, clean source, or license mismatch')
     for name, content in payload.items():
         path = directory / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -45,7 +60,7 @@ def unpack(data, directory):
     return manifest
 
 
-def verify(archive):
+def verify(archive, *, release=None):
     if archive.stat().st_size > MAX_ARCHIVE:
         raise ValueError('compressed archive exceeds limit')
     data = archive.read_bytes()
@@ -56,7 +71,7 @@ def verify(archive):
               ('Linux', 'x86_64'): 'x86_64-unknown-linux-gnu'}.get((platform.system(), platform.machine()))
     with tempfile.TemporaryDirectory(prefix='foresee-distribution-') as temporary:
         directory = Path(temporary)
-        manifest = unpack(data, directory)
+        manifest = unpack(data, directory, release=release)
         if manifest['target'] != target:
             raise ValueError('archive target does not match verifier host')
         binary = directory / 'bin/foresee-semantics'
@@ -71,8 +86,18 @@ def verify(archive):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('archives', type=Path, nargs='+')
-    for archive in parser.parse_args().archives:
-        verify(archive)
+    parser.add_argument('--release', action='store_true', help='require explicit candidate provenance and license metadata')
+    parser.add_argument('--expected-commit')
+    parser.add_argument('--expected-version')
+    parser.add_argument('--license-id')
+    args = parser.parse_args()
+    values = (args.expected_commit, args.expected_version, args.license_id)
+    if args.release and not all(values):
+        parser.error('--release requires --expected-commit, --expected-version, and --license-id')
+    if not args.release and any(values):
+        parser.error('candidate expectations require --release')
+    for archive in args.archives:
+        verify(archive, release=values if args.release else None)
 
 
 if __name__ == '__main__':

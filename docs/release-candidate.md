@@ -38,9 +38,23 @@ Exit 0 means only `source_ready=true`. Exit 1 means source prerequisites failed 
 ## Remaining concrete work
 
 1. The project owner chooses the license. Add the reviewed text and any required notices, then align Python and Rust declarations. No license has been chosen by this draft.
-2. Confirm release versions and update Python/native metadata and Cargo.lock together. Include LICENSE/notices in wheel, source distribution, and both native archives. The current native archive builder/verifier has an exact member set without LICENSE and must be updated once the chosen files are known; do not publish its present output as a licensed release.
-3. Update the native SBOM's currently undeclared-project-license wording and inspect dependency declarations/notices. The SBOM covers the Cargo graph, not Python dependencies, OS libraries, or binary linkage. The optional crypto backend also needs its distribution notices checked.
+2. Confirm release versions and update Python/native metadata and Cargo.lock together. Include LICENSE/notices in wheel, source distribution, and both native archives. The native archive builder now includes root LICENSE and NOTICE when present and records the unanimous workspace license declaration. Its strict release verifier checks expected commit/version/license and a clean source manifest. Python wheel/source inclusion and any additional required notice files still need checking; present archives have no chosen project license.
+3. Inspect the native SBOM workspace declaration and dependency declarations/notices; inconsistent or missing workspace licenses remain explicitly undeclared. The SBOM covers the Cargo graph, not Python dependencies, OS libraries, or binary linkage. The optional crypto backend also needs its distribution notices checked.
 4. Commit the complete candidate and run source preflight from a clean checkout. Require all ten Verify jobs to pass on that exact commit. Download that run's artifacts, inspect packaged metadata/licenses and native manifests, and retain their checksums/provenance.
 5. Finalize these notes using the exact tested version, commit, workflow, and artifacts. Create a new prerelease and attach those artifacts without rebuilding from a different checkout or replacing the existing alpha.
 
 A future release tool must enforce these artifact and hosted-CI gates before publication. This source preflight intentionally does not imply those checks have happened.
+
+## Native candidate verification
+
+Added on 7 November. Run on each archive's matching host after setting the actual candidate values:
+
+```sh
+python tools/verify_native.py PATH_TO_ARCHIVE.tar.gz --release \
+  --expected-commit FULL_40_CHARACTER_COMMIT \
+  --expected-version 0.2.0-alpha.1 --license-id SELECTED_SPDX_EXPRESSION
+```
+
+The verifier checks candidate metadata and nonempty LICENSE before extraction/execution, in addition to normal archive member and checksum validation. It requires `source_dirty` to be the actual JSON boolean false and `preview` to be true. Expectations must come from the release operator, not be copied automatically from an untrusted archive. The archive itself must be trusted: matching self-reported provenance and recomputable checksums is not an authenticated build attestation. This command executes bundled binaries after inspection, as the existing preview verifier does.
+
+Optional LICENSE/NOTICE members are bounded and covered by the manifest hashes. This checks presence, byte integrity, and declared license equality, not legal-text correctness, sufficiency of dependency notices, or publication approval. Native CI continues to build unlicensed development previews until the operator chooses and applies a license. No released version is inferred from this test.

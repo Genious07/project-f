@@ -58,3 +58,21 @@ python tools/verify_native.py PATH_TO_ARCHIVE.tar.gz --release \
 The verifier checks candidate metadata and nonempty LICENSE before extraction/execution, in addition to normal archive member and checksum validation. It requires `source_dirty` to be the actual JSON boolean false and `preview` to be true. Expectations must come from the release operator, not be copied automatically from an untrusted archive. The archive itself must be trusted: matching self-reported provenance and recomputable checksums is not an authenticated build attestation. This command executes bundled binaries after inspection, as the existing preview verifier does.
 
 Optional LICENSE/NOTICE members are bounded and covered by the manifest hashes. This checks presence, byte integrity, and declared license equality, not legal-text correctness, sufficiency of dependency notices, or publication approval. Native CI continues to build unlicensed development previews until the operator chooses and applies a license. No released version is inferred from this test.
+
+## Python candidate verification
+
+Added on 9 November. With the operator-selected version/license and a trusted reviewed directory containing LICENSE and any NOTICE:
+
+```sh
+python tools/verify_python_release.py PATH_TO_WHEEL.whl PATH_TO_SOURCE.tar.gz \
+  --expected-version 0.2.0a1 --license-id SELECTED_SPDX_EXPRESSION \
+  --legal-dir /path/to/reviewed/legal/files
+```
+
+The checker reads both formats without extraction, installation, or execution. It requires the expected project name/version, one matching `License-Expression`, supported metadata version 2.4 through 2.6, and exact `License-File` declarations for the supplied LICENSE and optional NOTICE. It compares their archived contents byte-for-byte with the reviewed files. Wheel legal files reside under `.dist-info/licenses/`; source legal files reside under the expected distribution root. These checks follow the [Python core metadata](https://packaging.python.org/en/latest/specifications/core-metadata/) and [wheel license-file layout](https://packaging.python.org/en/latest/specifications/binary-distribution-format/) specifications.
+
+This repository-specific checker rejects duplicate or unsafe member paths, links/special files, additional wheel package metadata, unexpected source roots, and oversized archives/text. Limits are 128 MiB compressed and summed expanded size, 10,000 members, and 1 MB per inspected metadata/legal file. Only LICENSE and NOTICE are supported legal-file names; extend the checker and tests if the selected license requires other paths. A selected license's legal sufficiency, copyright ownership, dependency obligations, and SPDX expression validity are not determined by string equality.
+
+Exit 0 means the requested package checks passed. The JSON includes each artifact's SHA-256 and always reports `publication_authorized=false`. A failure returns exit 1 and no successful artifact result. The command does not verify wheel RECORD entries, package code integrity, build provenance, signatures, or hosted CI. It is not a general wheel validator or an upload service for arbitrary hostile archives. Retain the hashes with the exact CI artifact provenance, and still run the installed-package tests.
+
+Seven focused tests cover both formats and rejection paths. A local fixture built with the pinned setuptools/wheel backend also passed both format checks; its temporary LicenseRef-Test material was never added to the project. The current repository still has no selected project license, and its existing packages must not pass this release gate.

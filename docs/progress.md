@@ -1,5 +1,16 @@
 # Development progress
 
+## Release preparation: Python package license and version checks
+
+Implemented on 9 November 2026.
+
+- Added a read-only wheel/source checker for expected project/version/license metadata and exact reviewed LICENSE/NOTICE contents at the standard archive locations.
+- Rejects missing or duplicate declarations, altered legal bytes, unexpected package roots, unsafe/duplicate paths, special members, and configured archive/text bounds. Nothing is extracted, installed, or executed.
+- Successful checks report artifact SHA-256 and explicitly do not authorize publication or authenticate build provenance. SPDX/legal review, installed-package checks, exact-commit CI, and release approval remain separate.
+- Added seven tests and checked real wheel/source fixtures built using the pinned backend, without choosing a license or modifying package versions in the project.
+
+Validation: 225 tests discovered with six Linux-only tests skipped locally on macOS. Hosted checks remain required. Existing unlicensed development packages are expected to fail the release license check. No release/tag was created. The next release step requires the owner's license choice, version alignment, and then these checks against the actual candidate artifacts.
+
 ## Release preparation: native artifact provenance and legal-file checks
 
 Implemented on 7 November 2026.

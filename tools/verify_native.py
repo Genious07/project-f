@@ -40,7 +40,7 @@ def unpack(data, directory, *, release=None):
     if manifest.get('schema_version') != 1 or manifest.get('sha256') != expected:
         raise ValueError('payload checksum mismatch')
     for name in OPTIONAL_FILES & payload.keys():
-        if len(payload[name]) > 1_000_000 or not payload[name].strip():
+        if len(payload[name]) > 2_000_000 or not payload[name].strip():
             raise ValueError('invalid legal file')
     if release is not None:
         commit, version, license_id = release

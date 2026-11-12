@@ -84,3 +84,7 @@ Experimental Ed25519 signing primitives and explicit trusted-key verification: [
 Evidence workflow review and operational limits: [internal review](docs/evidence-review.md).
 
 Upcoming preview: [draft release notes and remaining gates](docs/release-candidate.md).
+
+## License
+
+Foresee is licensed under [MIT](LICENSE), copyright 2026 Satwik Singh. Bundled upstream notices are retained in [NOTICE](NOTICE).

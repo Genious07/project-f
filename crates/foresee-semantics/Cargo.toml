@@ -1,6 +1,7 @@
 [package]
 name = "foresee-semantics"
-version = "0.0.1"
+version = "0.2.0-alpha.1"
+license = "MIT"
 edition = "2021"
 default-run = "foresee-semantics"
 

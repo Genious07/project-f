@@ -11,7 +11,7 @@ Open the repository's **Actions > Verify** run for the desired commit and downlo
 | Ubuntu 24.04 x86-64 | `x86_64-unknown-linux-gnu` | Tested on Ubuntu 24.04; glibc/system libraries required |
 | macOS Apple Silicon | `aarch64-apple-darwin` | Tested on the current GitHub macOS ARM64 runner; macOS system libraries required. Older macOS compatibility is not established by this job. |
 
-Older operating systems, Intel Macs, Linux ARM64, Windows, and static/musl builds are not validated. These are unsigned CI previews, not a published v0.2 release. There is no installer or automatic PATH modification.
+Older operating systems, Intel Macs, Linux ARM64, Windows, and static/musl builds are not validated. These are unsigned preview binaries; use the v0.2.0-alpha.1 prerelease artifacts once its release gate completes. There is no installer or automatic PATH modification.
 
 Verify the adjacent checksum with `sha256sum -c ARCHIVE.tar.gz.sha256` on Linux or `shasum -a 256 -c ARCHIVE.tar.gz.sha256` on macOS. Extract into an empty directory, then run:
 
@@ -31,7 +31,7 @@ The language server waits for an editor's framed stdio messages. Configure an LS
 - `sbom.spdx.json`, an SPDX 2.3 inventory derived from locked Cargo metadata and Cargo.lock. It includes workspace crates, transitive dependencies, build dependencies, declared licenses, registry package checksums, and dependency relationships.
 - This guide, plus an adjacent checksum of the whole archive.
 
-The SBOM inventories Cargo packages, not exact linked code, Rust standard-library contents, or system libraries. `NOASSERTION` records unknown or unreviewed licensing. This repository currently has no project license declaration. Dependency license metadata does not grant a license to project code. The SPDX metadata's CC0 data license applies only to the inventory. See the [SPDX document fields](https://spdx.github.io/spdx-spec/v2.3.1/document-creation-information/) and [package fields](https://spdx.github.io/spdx-spec/v2.3.1/package-information/).
+The SBOM inventories Cargo packages, not exact linked code, Rust standard-library contents, or system libraries. `NOASSERTION` records unknown or unreviewed licensing. Project code is MIT licensed; LICENSE and NOTICE are included. Dependencies and Rust library components retain their upstream terms. The SPDX metadata's CC0 data license applies only to the inventory. See the [SPDX document fields](https://spdx.github.io/spdx-spec/v2.3.1/document-creation-information/) and [package fields](https://spdx.github.io/spdx-spec/v2.3.1/package-information/).
 
 Checksums detect corruption, not publisher authenticity. Use artifacts from the intended repository/run/commit. The verifier executes the archive's binaries, so use it only for trusted artifacts.
 
@@ -50,6 +50,6 @@ The verifier bounds archive size, rejects unexpected paths, links, duplicate mem
 
 ## Next gate
 
-Day 15 runs all correctness and distribution gates, documents parity and outstanding limits, and considers a versioned compiler preview. Public release readiness also requires resolving the project's license declaration and distribution terms.
+Day 15 runs all correctness and distribution gates, documents parity and outstanding limits, and considers a versioned compiler preview. The owner selected MIT on 12 November 2026; exact-candidate CI and packaged notice checks remain required.
 
-Candidate release checks: use the [strict native verification procedure](release-candidate.md#native-candidate-verification) with an explicit commit, version, and selected license. Development archives may omit LICENSE/NOTICE; candidate release mode requires LICENSE and matching manifest declarations. Present previews remain unlicensed pending the project decision.
+Candidate release checks: use the [strict native verification procedure](release-candidate.md#native-candidate-verification) with an explicit commit, version, and selected license. Development archives may omit LICENSE/NOTICE; candidate release mode requires LICENSE and matching manifest declarations. Candidate CI now requires MIT, the chosen version, and the exact source commit.

@@ -21,7 +21,9 @@ jobs:
       - run: python -m pip install ".[evidence]"
       - run: python -m unittest discover -s tests -v
       - run: python -m pip install build==1.2.2.post1
+      - run: python tools/check_release_source.py --python-version 0.2.0a1 --native-version 0.2.0-alpha.1 --license-id MIT
       - run: python -m build
+      - run: python tools/verify_python_release.py dist/*.whl dist/*.tar.gz --expected-version 0.2.0a1 --license-id MIT --legal-dir .
       - run: python tools/verify_install.py dist/*.whl --evidence
       - uses: actions/upload-artifact@v4
         with:
@@ -72,7 +74,7 @@ jobs:
           python-version: '3.14'
       - run: rustup show
       - run: python tools/package_native.py
-      - run: python tools/verify_native.py release-dist/native/*.tar.gz
+      - run: python tools/verify_native.py release-dist/native/*.tar.gz --release --expected-commit "${{ github.sha }}" --expected-version 0.2.0-alpha.1 --license-id MIT
       - uses: actions/upload-artifact@v4
         with:
           name: native-${{ matrix.os }}

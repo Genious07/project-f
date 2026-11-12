@@ -15,7 +15,7 @@ from tools.package_native import legal_files
 
 MAX_ARCHIVE = 128 * 1024 * 1024
 MAX_MEMBERS = 10_000
-MAX_TEXT = 1_000_000
+MAX_TEXT = 2_000_000
 NAME = 'project-f-bootstrap'
 
 

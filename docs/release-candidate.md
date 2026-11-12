@@ -1,6 +1,6 @@
 # Draft next preview release
 
-Prepared on 6 November 2026. This document is a reviewable release draft, not a published release or a claim that the repository is licensed for distribution. Suggested version mapping, still unapplied: tag `v0.2.0-alpha.1`, Python `0.2.0a1`, native crates `0.2.0-alpha.1`. Existing package versions and the published alpha remain unchanged.
+Prepared on 6 November 2026. Updated on 12 November 2026 after the owner selected MIT. Candidate version mapping: tag `v0.2.0-alpha.1`, Python `0.2.0a1`, native crates `0.2.0-alpha.1`. Python/Rust versions and Cargo.lock now match this candidate. The previous alpha remains unchanged. Publication requires the exact candidate CI/artifact checks below.
 
 ## Draft release description
 
@@ -22,23 +22,23 @@ Validation at the preparation stage: 212 Python tests in the suite; six are Linu
 
 ## Source preflight
 
-Once the operator chooses a license and applies version metadata:
+MIT has been selected and candidate metadata applied. From the clean committed candidate:
 
 ```sh
 python tools/check_release_source.py \
   --python-version 0.2.0a1 \
   --native-version 0.2.0-alpha.1 \
-  --license-id SELECTED_SPDX_EXPRESSION
+  --license-id MIT
 ```
 
-The last argument is a placeholder; the tool does not select or recommend a license. It checks exact declaration equality, not SPDX syntax validity, legal suitability, or license-text authenticity. It requires a nonempty tracked regular `LICENSE` file, explicit Python `project.license-files` inclusion, consistent declarations across the explicit Rust workspace members, consistent versions in Cargo.lock, and a clean checkout. Metadata inheritance and workspace globs are not supported by this repository-specific preflight.
+MIT is the owner-selected license; the tool does not select or recommend one. It checks exact declaration equality, not SPDX syntax validity, legal suitability, or license-text authenticity. It requires a nonempty tracked regular `LICENSE` file, explicit Python `project.license-files` inclusion, consistent declarations across the explicit Rust workspace members, consistent versions in Cargo.lock, and a clean checkout. Metadata inheritance and workspace globs are not supported by this repository-specific preflight.
 
 Exit 0 means only `source_ready=true`. Exit 1 means source prerequisites failed or could not be read. `publication_authorized` is always false. The tool performs no writes, builds, network calls, tags, or publication. Omitting `--license-id` intentionally fails the license-selection check.
 
 ## Remaining concrete work
 
-1. The project owner chooses the license. Add the reviewed text and any required notices, then align Python and Rust declarations. No license has been chosen by this draft.
-2. Confirm release versions and update Python/native metadata and Cargo.lock together. Include LICENSE/notices in wheel, source distribution, and both native archives. The native archive builder now includes root LICENSE and NOTICE when present and records the unanimous workspace license declaration. Its strict release verifier checks expected commit/version/license and a clean source manifest. Python wheel/source inclusion and any additional required notice files still need checking; present archives have no chosen project license.
+1. Completed: owner selected MIT; LICENSE names Satwik Singh, and Python/Rust declarations are aligned. NOTICE retains upstream Cargo and Rust standard-library notices.
+2. Confirm release versions and update Python/native metadata and Cargo.lock together. Include LICENSE/notices in wheel, source distribution, and both native archives. The native archive builder now includes root LICENSE and NOTICE when present and records the unanimous workspace license declaration. Its strict release verifier checks expected commit/version/license and a clean source manifest. Python wheel/source inclusion and any additional required notice files still need checking; the candidate now carries MIT and upstream notices.
 3. Inspect the native SBOM workspace declaration and dependency declarations/notices; inconsistent or missing workspace licenses remain explicitly undeclared. The SBOM covers the Cargo graph, not Python dependencies, OS libraries, or binary linkage. The optional crypto backend also needs its distribution notices checked.
 4. Commit the complete candidate and run source preflight from a clean checkout. Require all ten Verify jobs to pass on that exact commit. Download that run's artifacts, inspect packaged metadata/licenses and native manifests, and retain their checksums/provenance.
 5. Finalize these notes using the exact tested version, commit, workflow, and artifacts. Create a new prerelease and attach those artifacts without rebuilding from a different checkout or replacing the existing alpha.
@@ -52,12 +52,12 @@ Added on 7 November. Run on each archive's matching host after setting the actua
 ```sh
 python tools/verify_native.py PATH_TO_ARCHIVE.tar.gz --release \
   --expected-commit FULL_40_CHARACTER_COMMIT \
-  --expected-version 0.2.0-alpha.1 --license-id SELECTED_SPDX_EXPRESSION
+  --expected-version 0.2.0-alpha.1 --license-id MIT
 ```
 
 The verifier checks candidate metadata and nonempty LICENSE before extraction/execution, in addition to normal archive member and checksum validation. It requires `source_dirty` to be the actual JSON boolean false and `preview` to be true. Expectations must come from the release operator, not be copied automatically from an untrusted archive. The archive itself must be trusted: matching self-reported provenance and recomputable checksums is not an authenticated build attestation. This command executes bundled binaries after inspection, as the existing preview verifier does.
 
-Optional LICENSE/NOTICE members are bounded and covered by the manifest hashes. This checks presence, byte integrity, and declared license equality, not legal-text correctness, sufficiency of dependency notices, or publication approval. Native CI continues to build unlicensed development previews until the operator chooses and applies a license. No released version is inferred from this test.
+Optional LICENSE/NOTICE members are bounded and covered by the manifest hashes. This checks presence, byte integrity, and declared license equality, not legal-text correctness, sufficiency of dependency notices, or publication approval. Native CI now invokes strict release verification with MIT and the exact GitHub commit. No released version is inferred from this test.
 
 ## Python candidate verification
 
@@ -65,14 +65,14 @@ Added on 9 November. With the operator-selected version/license and a trusted re
 
 ```sh
 python tools/verify_python_release.py PATH_TO_WHEEL.whl PATH_TO_SOURCE.tar.gz \
-  --expected-version 0.2.0a1 --license-id SELECTED_SPDX_EXPRESSION \
+  --expected-version 0.2.0a1 --license-id MIT \
   --legal-dir /path/to/reviewed/legal/files
 ```
 
 The checker reads both formats without extraction, installation, or execution. It requires the expected project name/version, one matching `License-Expression`, supported metadata version 2.4 through 2.6, and exact `License-File` declarations for the supplied LICENSE and optional NOTICE. It compares their archived contents byte-for-byte with the reviewed files. Wheel legal files reside under `.dist-info/licenses/`; source legal files reside under the expected distribution root. These checks follow the [Python core metadata](https://packaging.python.org/en/latest/specifications/core-metadata/) and [wheel license-file layout](https://packaging.python.org/en/latest/specifications/binary-distribution-format/) specifications.
 
-This repository-specific checker rejects duplicate or unsafe member paths, links/special files, additional wheel package metadata, unexpected source roots, and oversized archives/text. Limits are 128 MiB compressed and summed expanded size, 10,000 members, and 1 MB per inspected metadata/legal file. Only LICENSE and NOTICE are supported legal-file names; extend the checker and tests if the selected license requires other paths. A selected license's legal sufficiency, copyright ownership, dependency obligations, and SPDX expression validity are not determined by string equality.
+This repository-specific checker rejects duplicate or unsafe member paths, links/special files, additional wheel package metadata, unexpected source roots, and oversized archives/text. Limits are 128 MiB compressed and summed expanded size, 10,000 members, and 2 MB per inspected metadata/legal file. Only LICENSE and NOTICE are supported legal-file names; extend the checker and tests if the selected license requires other paths. A selected license's legal sufficiency, copyright ownership, dependency obligations, and SPDX expression validity are not determined by string equality.
 
 Exit 0 means the requested package checks passed. The JSON includes each artifact's SHA-256 and always reports `publication_authorized=false`. A failure returns exit 1 and no successful artifact result. The command does not verify wheel RECORD entries, package code integrity, build provenance, signatures, or hosted CI. It is not a general wheel validator or an upload service for arbitrary hostile archives. Retain the hashes with the exact CI artifact provenance, and still run the installed-package tests.
 
-Seven focused tests cover both formats and rejection paths. A local fixture built with the pinned setuptools/wheel backend also passed both format checks; its temporary LicenseRef-Test material was never added to the project. The current repository still has no selected project license, and its existing packages must not pass this release gate.
+Seven focused tests cover both formats and rejection paths. A local fixture built with the pinned setuptools/wheel backend also passed both format checks; its temporary LicenseRef-Test material was never added to the project. Historical unlicensed packages fail this gate; current candidate CI requires MIT and exact LICENSE/NOTICE bytes.

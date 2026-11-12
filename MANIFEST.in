@@ -1,3 +1,4 @@
+include LICENSE NOTICE
 include Cargo.toml Cargo.lock rust-toolchain.toml
 recursive-include foresee *.py
 recursive-include crates *.toml *.rs

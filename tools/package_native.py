@@ -45,7 +45,7 @@ def legal_files(root):
         if path.is_symlink():
             raise ValueError('legal files must not be symlinks')
         if path.exists():
-            if not path.is_file() or path.stat().st_size > 1_000_000:
+            if not path.is_file() or path.stat().st_size > 2_000_000:
                 raise ValueError('legal files must be bounded regular files')
             raw = path.read_bytes()
             if not raw.strip():

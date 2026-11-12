@@ -1,5 +1,16 @@
 # Development progress
 
+## MIT preview release candidate
+
+Prepared on 12 November 2026 after the owner selected MIT.
+
+- Added the MIT license naming Satwik Singh and preserved upstream Cargo dependency and Rust 1.98.1 standard-library notices.
+- Aligned Python to 0.2.0a1 and both Rust crates/Cargo.lock to 0.2.0-alpha.1.
+- CI now requires clean source preflight, exact Python package legal contents, and native candidate provenance/license verification on both hosts.
+- Increased bounded legal-file inspection to 2 MB to retain the complete upstream standard-library notice inventory.
+
+Publication is gated on the exact committed candidate's full Verify run and downloaded artifact inspection. The previous alpha remains unchanged; this candidate does not claim production stability or independently audited security.
+
 ## Release preparation: Python package license and version checks
 
 Implemented on 9 November 2026.

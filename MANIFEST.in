@@ -9,3 +9,5 @@ recursive-include tests *.py
 recursive-include tools *.py
 include Dockerfile .dockerignore
 global-exclude *.pyc *.db *.db-journal *.db-wal *.db-shm
+
+recursive-include integration *.py

@@ -12,7 +12,9 @@ from .catalog import Snapshot
 
 
 class AdapterFixture(Protocol):
-    """Every fixture owns a new disposable target beneath the supplied directory.
+    """Every fixture owns a new disposable target. Local files live beneath the
+    supplied directory; remote fixtures own a fresh isolated namespace and
+    expose close() for cleanup. Never use an existing user target.
 
     connect() returns an independent closable ResourceProvider. Fixture helpers
     inspect persisted state and inject failures; they must not implement commit
@@ -38,6 +40,8 @@ class AdapterContract(unittest.TestCase):
         directory = tempfile.TemporaryDirectory(prefix='foresee-adapter-')
         self.addCleanup(directory.cleanup)
         self.fixture = self.factory(Path(directory.name))
+        if callable(getattr(self.fixture, "close", None)):
+            self.addCleanup(self.fixture.close)
         self.adapter = self.fixture.connect()
         self.addCleanup(self.adapter.close)
         self.base = self.adapter.snapshot()

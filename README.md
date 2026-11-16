@@ -88,3 +88,5 @@ Upcoming preview: [draft release notes and remaining gates](docs/release-candida
 ## License
 
 Foresee is licensed under [MIT](LICENSE), copyright 2026 Satwik Singh. Bundled upstream notices are retained in [NOTICE](NOTICE).
+
+PostgreSQL development: [adapter contract and disposable test fixture](docs/postgres-adapter.md). This is a test foundation; the PostgreSQL resource adapter is not implemented yet.

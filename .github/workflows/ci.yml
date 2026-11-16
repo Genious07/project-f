@@ -80,3 +80,27 @@ jobs:
           name: native-${{ matrix.os }}
           path: release-dist/native/*
           if-no-files-found: error
+
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: foresee_test
+          POSTGRES_USER: foresee
+          POSTGRES_PASSWORD: conformance-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U foresee -d foresee_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      FORESEE_TEST_POSTGRES_DSN: postgresql://foresee:conformance-only@localhost:5432/foresee_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: python -m pip install ".[postgres]"
+      - run: python -m unittest discover -s integration -v

@@ -1,5 +1,16 @@
 # Development progress
 
+## PostgreSQL milestone 1: contract and disposable fixture
+
+Started on 12 November and prepared for CI on 16 November 2026, after the v0.2.0-alpha.1 release.
+
+- Defined the proposed Catalog/Patch transaction, snapshot, receipt, identity, and recovery contract for PostgreSQL.
+- Added an opt-in PostgreSQL fixture with a fresh random schema, seeded rows, stable target identity, receipt failure injection, explicit connection/session limits, and owned-schema cleanup.
+- Extended the shared conformance runner to close remote fixtures even when adapter setup fails. A candidate adapter factory remains required to run the twelve adapter checks.
+- Added three portable guard/cleanup tests and six mandatory real-database integration tests in a dedicated PostgreSQL 18 CI job.
+
+Local validation: 228 unit/integration tests discovered in the regular suite, six Linux-only tests skipped on macOS. The real PostgreSQL job must pass separately; no production target is accessed. This milestone does not implement commit or claim adapter conformance. Next: implement the PostgreSQL resource adapter, run all twelve shared checks, then add process-crash/reconciliation and deployment integration. The published v0.2.0-alpha.1 artifacts remain unchanged.
+
 ## MIT preview release candidate
 
 Prepared on 12 November 2026 after the owner selected MIT.

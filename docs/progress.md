@@ -1,5 +1,16 @@
 # Development progress
 
+## PostgreSQL milestone 2: resource adapter
+
+Implemented on 17 November 2026.
+
+- Added an optional existing-target PostgreSQL Catalog adapter with immutable repeatable-read snapshots and explicit read-committed write transactions.
+- Commits serialize writers, validate plans, enforce arithmetic/postconditions, and persist changes, revision, and terminal receipt atomically. Repeated operation identities return the existing receipt; conflicting intent fails.
+- Added receipt lookup, strict target/configuration checks, bounded lock waits, idle-connection ownership, and fully qualified tables. Temporary tables cannot shadow the configured target.
+- Wired all twelve shared adapter checks and seven additional PostgreSQL cases into the real-database CI job, alongside the six fixture checks. Added two portable optional-driver/configuration tests.
+
+Local validation: 230 regular tests discovered, six Linux-only tests skipped on macOS. The dedicated PostgreSQL job runs 25 tests. Hosted verification is required for this commit. Project configuration, journal recovery, true process-crash testing, and deployment remain pending; no production target or published release is changed.
+
 ## PostgreSQL milestone 1: contract and disposable fixture
 
 Started on 12 November and prepared for CI on 16 November 2026, after the v0.2.0-alpha.1 release.

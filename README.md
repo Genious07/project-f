@@ -89,4 +89,4 @@ Upcoming preview: [draft release notes and remaining gates](docs/release-candida
 
 Foresee is licensed under [MIT](LICENSE), copyright 2026 Satwik Singh. Bundled upstream notices are retained in [NOTICE](NOTICE).
 
-PostgreSQL development: [adapter contract and disposable test fixture](docs/postgres-adapter.md). An experimental existing-target adapter is implemented and tested against the shared storage contract. Project configuration, journal recovery, and deployment support remain pending.
+PostgreSQL development: [adapter contract and disposable test fixture](docs/postgres-adapter.md). An experimental existing-target adapter is implemented and tested against the shared storage contract. Python journal recovery and process-crash checks are implemented. Project configuration and deployment support remain pending.

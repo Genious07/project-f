@@ -62,11 +62,10 @@ class PostgresSpecificTests(unittest.TestCase):
             self.assertEqual(self.fixture.receipts(), [])
 
     def test_lock_timeout_rolls_back_and_connection_reusable(self):
-        from psycopg.errors import LockNotAvailable
         self.adapter.connection.execute("SET lock_timeout='100ms'")
         with self.fixture.database() as owner, owner.transaction():
             owner.execute('LOCK TABLE catalog_rows IN SHARE ROW EXCLUSIVE MODE')
-            with self.assertRaises(LockNotAvailable):
+            with self.assertRaisesRegex(RuntimeError, 'reconcile the original operation'):
                 self.adapter.commit(self.selection, 'program')
         self.assertEqual(self.adapter.snapshot(), self.base)
         self.assertEqual(self.fixture.receipts(), [])

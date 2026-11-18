@@ -15,7 +15,6 @@ class ModelProvider(Protocol):
 
 
 class ResourceProvider(Protocol):
-    path: Path
     @property
     def target_id(self) -> str: ...
     def snapshot(self) -> Snapshot: ...

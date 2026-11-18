@@ -4,14 +4,29 @@ One instance belongs to one caller; concurrent operations use separate instances
 Credentials are connection input only, never a resource path or evidence field.
 """
 from copy import deepcopy
+from functools import wraps
 import re
 import uuid
 
 from .catalog import Catalog, Snapshot, commit_identity, stable_digest
+from .target_reference import postgres_reference
+
+
+def _commit_errors(method):
+    @wraps(method)
+    def wrapped(self, *args, **kwargs):
+        try:
+            return method(self, *args, **kwargs)
+        except self._driver.Error:
+            # A transport failure around COMMIT has an unknown outcome. Never
+            # expose database diagnostics (which can contain secrets) in reports.
+            raise RuntimeError('PostgreSQL commit failed; reconcile the original operation') from None
+    return wrapped
 
 
 class PostgresCatalog:
-    def __init__(self, dsn, schema):
+    def __init__(self, dsn, schema, *, target_name=None):
+        self._journal_reference = postgres_reference(target_name, schema) if target_name is not None else None
         if type(dsn) is not str or not dsn.strip():
             raise ValueError('an explicit PostgreSQL DSN is required')
         # A deliberately narrow namespace avoids search_path lists and special schemas.
@@ -45,6 +60,23 @@ class PostgresCatalog:
         except BaseException:
             self.connection.close()
             raise
+
+    @property
+    def journal_reference(self):
+        if self._journal_reference is None:
+            raise ValueError('PostgreSQL journaling requires a local target name')
+        return dict(self._journal_reference)
+
+    def recovery_receipt(self, expected_target_id, commit_id):
+        """Read identity and receipt together without changing the target."""
+        self._idle()
+        if type(commit_id) is not str or not re.fullmatch('[0-9a-f]{64}', commit_id):
+            raise ValueError('invalid commit ID')
+        with self.connection.transaction():
+            self.connection.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+            if self._read_target_id() != expected_target_id:
+                raise ValueError('target identity mismatch')
+            return self._execute('SELECT * FROM {foresee_receipts} WHERE commit_id=%s', (commit_id,)).fetchone()
 
     def _execute(self, query, params=None):
         tables = ('catalog_rows', 'catalog_meta', 'foresee_target', 'foresee_receipts')
@@ -105,6 +137,7 @@ class PostgresCatalog:
             raise ValueError('invalid commit ID')
         return self._execute('SELECT * FROM {foresee_receipts} WHERE commit_id = %s', (commit_id,)).fetchone()
 
+    @_commit_errors
     def commit(self, selection, program_digest, *, operation_id=None, fault_hook=None):
         self._idle()
         selection = deepcopy(selection)

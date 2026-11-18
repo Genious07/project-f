@@ -1,5 +1,16 @@
 # Development progress
 
+## PostgreSQL milestone 3: journal recovery and process termination
+
+Implemented on 18 November 2026.
+
+- Added versioned local target references without endpoints or credentials, stored atomically with prepared intent in an additive journal table. Legacy SQLite journal reconciliation remains supported.
+- Added explicit local PostgreSQL recovery mappings and identity/receipt reads in a single read-only transaction. Missing or inconsistent evidence stays unresolved; reconciliation never retries target effects.
+- Redacted PostgreSQL commit-driver errors into the runtime's existing unresolved-commit path, preserving prepared intent and incomplete evidence.
+- Added nine database recovery checks, including parent-issued SIGKILL before transaction, before commit, and after commit, plus three portable reference/compatibility/redaction tests.
+
+Local validation: 233 regular tests discovered, six Linux-only checks skipped on macOS. PostgreSQL CI runs 34 database tests, including twelve shared adapter checks. Hosted verification is required for this commit. Client crashes are covered; server crashes, transport disruption, deployment provisioning, project/CLI configuration, and installed-package PostgreSQL validation remain future work.
+
 ## PostgreSQL milestone 2: resource adapter
 
 Implemented on 17 November 2026.

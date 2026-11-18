@@ -1,6 +1,6 @@
 # PostgreSQL adapter contract and implementation
 
-Milestone 2, 17 November 2026. The experimental resource adapter and disposable database fixture are implemented. Project configuration, journal recovery integration, and deployment support remain pending.
+Milestone 3, 18 November 2026. The experimental resource adapter, Python journal recovery, and disposable database fixture are implemented. Project configuration and deployment support remain pending.
 
 ## Scope and philosophy
 
@@ -47,15 +47,14 @@ Provide `FORESEE_TEST_POSTGRES_DSN` through the environment, pointing only to a 
 python -m unittest discover -s integration -v
 ```
 
-Missing configuration or driver is a test failure, not a skip. The dedicated CI job starts an isolated PostgreSQL 18 service with test-only credentials. Its six checks cover schema isolation/seed identity, receipt-write rollback, bounded row-lock contention and reuse after rollback, repeatable-read consistency, scoped/idempotent cleanup, and receipt uniqueness. These are database foundation tests. The same job also runs all twelve shared resource-adapter conformance checks plus seven PostgreSQL-specific adapter tests.
+Missing configuration or driver is a test failure, not a skip. The dedicated CI job starts an isolated PostgreSQL 18 service with test-only credentials. Its six checks cover schema isolation/seed identity, receipt-write rollback, bounded row-lock contention and reuse after rollback, repeatable-read consistency, scoped/idempotent cleanup, and receipt uniqueness. These are database foundation tests. The same job also runs all twelve shared resource-adapter conformance checks plus seven PostgreSQL-specific adapter tests and nine journal/recovery tests, for 34 database tests total.
 
 A killed test process may leave its generated schema behind. On a disposable server, inspect the test namespace before removing abandoned schemas. The fixture does not scan or delete other schemas automatically. Successful teardown is registered for ordinary failures; this is not a server-wide resource management or cleanup service.
 
 ## Next acceptance gates
 
-1. Add true process termination and reconnect/reconciliation tests. Fixture exceptions alone are not crash testing.
-2. Replace the SQLite-specific path assumption in journal/resource references with an explicit adapter target reference while preserving old journals. Database credentials must remain local configuration.
-3. Add project configuration, deployment examples, and installed-package PostgreSQL checks before exposing this as a supported runtime target.
+1. Add project configuration, deployment examples, and installed-package PostgreSQL checks before exposing this as a supported runtime target.
+2. Exercise server restart and transport disruption separately from the implemented client-process termination checks.
 
 ## Experimental Python API
 
@@ -77,6 +76,27 @@ The schema must already contain the four managed tables. Opening validates reada
 
 Each adapter instance belongs to one caller. Use separate instances for concurrent operations. Public snapshot/commit/receipt operations require an idle connection; they never adopt or commit a caller's transaction. SQL identifiers are composed and application tables are fully schema-qualified, preventing temporary tables from shadowing the target. Schema names use a restricted lowercase identifier syntax (up to 63 ASCII characters, excluding system namespaces). Snapshot rows are sorted in Python to preserve the existing digest ordering independently of database collation.
 
-The adapter uses the fixture's connection and session timeout bounds. It never automatically retries. `receipt(commit_id)` returns a persisted row or `None`; absence alone cannot establish that another session has no in-flight operation. The conformance test for lost acknowledgement injects a failure after commit, not a network disconnection or process kill. Such crash/reconnect coverage and identity-checked journal reconciliation remain the next milestone.
+The adapter uses the fixture's connection and session timeout bounds. It never automatically retries. `receipt(commit_id)` returns a persisted row or `None`; absence alone cannot establish that another session has no in-flight operation. The conformance test for lost acknowledgement injects a failure after commit, not a network disconnection or process kill. Separate recovery tests now kill a real client subprocess with SIGKILL at all three transaction boundaries and reconnect to inspect durable evidence. These are client-crash tests, not server-crash or network-partition tests.
 
-The adapter has no filesystem `path` and is currently usable through the Python runtime without a journal. Do not pass it to the SQLite journal or select it in project configuration yet. No DSN is added to the report or receipt, and connection establishment errors are redacted. Operators should still treat raw database diagnostics as local diagnostic data.
+The adapter has no filesystem `path`. Python callers may now use a local SQLite journal with an explicit `target_name`; project configuration and CLI target selection remain pending. No DSN is added to the report, reference, or receipt. Connection establishment, commit-driver failures, and remote reconciliation errors are redacted. Operators should still treat other raw database diagnostics as local diagnostic data.
+
+## Journal and recovery API
+
+Construct the adapter with a local alias, for example `PostgresCatalog(dsn, "managed_catalog", target_name="catalog")`, and pass `Journal(Path("runs.db"))` to `Runtime(..., journal=journal)`. Close both resources after use. The alias is required for journaled PostgreSQL operations; it is not required for unjournaled adapter use.
+
+After stopping an interrupted worker, supply the endpoint from trusted local configuration:
+
+```python
+from pathlib import Path
+from foresee.journal import reconcile
+
+result = reconcile(Path("runs.db"), postgres_targets={
+    "catalog": {"dsn": os.environ["FORESEE_POSTGRES_DSN"], "schema": "managed_catalog"}
+})
+```
+
+The journal stores only a versioned adapter/name/schema reference in an additive `operation_targets` table, alongside the existing operation identity and target UUID. Endpoint strings and credentials are never serialized by the reference layer. PostgreSQL rows use an empty legacy `target_path`. Old SQLite rows and journals without the new table continue to reconcile; normal `Journal(path)` initialization adds the table, while `existing=True` recovery does not migrate journals. Use normal initialization before recording new PostgreSQL operations into an old journal.
+
+Recovery resolves aliases only through the supplied mapping, requires the configured schema to match, and reads UUID plus receipt in one read-only repeatable-read transaction. Missing mappings, mismatched identity/schema, inconsistent receipts, and unavailable evidence remain unresolved. It writes only journal state, never target data. A lost reference cannot turn a remote target into a working local path. This mechanism is not authentication against a maliciously rewritten journal or an administrator copying target UUIDs.
+
+The process tests also inspect evidence while a worker is held before commit: a receipt not yet visible stays unresolved. After SIGKILL, the tests wait for the database session to disappear, verify rollback before commit, and verify exactly one receipt/revision increment after commit. Repeated reconciliation never retries the effect or claims the interrupted program finished.

@@ -107,3 +107,14 @@ jobs:
       - run: python -m pip install build==1.2.2.post1
       - run: python -m build --wheel
       - run: python tools/verify_install.py dist/*.whl --postgres
+
+  postgres-faults:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - run: python -m pip install ".[postgres]"
+      - run: python tools/check_postgres_faults.py

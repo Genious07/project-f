@@ -1,5 +1,16 @@
 # Development progress
 
+## PostgreSQL milestone 5: server restart and lost acknowledgements
+
+Implemented on 21 November 2026.
+
+- Added an isolated Docker fault harness that creates its own loopback PostgreSQL target, accepts no existing DSN/container, and removes its container and data volume on ordinary exit.
+- Added four real failure scenarios: server SIGKILL before/after commit, TCP connection loss before commit, and a withheld COMMIT response after an independent connection observes the durable receipt.
+- Added three portable wire-framing tests and a dedicated CI job. Repeated recovery asserts no duplicate effects or inferred success without receipts.
+- Prepared a deployment pilot acceptance/measurement plan. No hosted target is selected or deployed; platform and workload decisions remain open.
+
+Local validation: 241 regular tests discovered, six Linux-only checks skipped on macOS. The local Docker daemon is unavailable, so the four destructive scenarios require their dedicated CI job. Existing 37 PostgreSQL integration tests and installed-wheel checks remain required. Silent partitions, replication failover, storage loss, and real workload measurements are not claimed.
+
 ## PostgreSQL milestone 4: project CLI and deployment example
 
 Implemented on 21 November 2026. The previous milestone's queued macOS checks completed successfully.

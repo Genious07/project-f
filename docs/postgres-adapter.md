@@ -54,7 +54,7 @@ A killed test process may leave its generated schema behind. On a disposable ser
 ## Next acceptance gates
 
 1. Run a real deployment pilot and measure contention, throughput, and operational recovery.
-2. Exercise server restart and transport disruption separately from the implemented client-process termination checks.
+2. Exercise replication failover, storage loss, and silent network partitions separately from the isolated restart/connection-loss checks below.
 
 ## Experimental Python API
 
@@ -134,3 +134,16 @@ The runtime role receives SELECT, derived-price UPDATE, revision UPDATE, receipt
 Retain the local `.foresee` directory on persistent storage and back it up along with the target. Provision network access, server authentication, TLS, credential rotation, and a non-owner runtime login through your deployment environment. This example does not configure those services. Stop the worker before recovery; inspect unresolved outcomes without issuing a new run automatically.
 
 CI executes 37 PostgreSQL checks, then builds a wheel and reruns those checks in a fresh environment outside the checkout. The provisioning test uses a random NOLOGIN role and schema and removes both; its disposable test database owner needs CREATEROLE as well as schema/trigger privileges. PostgreSQL 18 is the tested server version. Server restart, network partition, performance benchmarking, and a hosted pilot remain separate gates.
+
+## Server and transport failure harness
+
+`python tools/check_postgres_faults.py` owns a fresh loopback-only PostgreSQL 18 Docker container and removes it and its anonymous data volume on ordinary completion/failure. It accepts no existing DSN or container. Docker must be available. A dedicated `postgres-faults` CI job runs four checks:
+
+1. Kill the server with SIGKILL before commit, restart the same container, and confirm rollback plus unresolved journal evidence.
+2. Kill the server after a successful commit, restart it, surface the broken connection before recording the runtime outcome, and recover the durable receipt.
+3. Cut a real TCP connection before COMMIT and confirm no durable effect.
+4. Forward COMMIT while withholding all server response bytes, independently observe the saved receipt, then cut the connection. The runtime must report an unresolved commit while read-only recovery confirms exactly one effect.
+
+The last check uses a test-only PostgreSQL frontend-frame parser. The proxy is armed only at the write commit boundary; initialization and snapshot transactions pass normally. It disables TLS/GSS only on the disposable loopback connection, forwards authentication without logging it, and never accepts production endpoints. It is not a general proxy or a network-partition simulator. Portable tests cover fragmented frames, exact command matching, and invalid lengths.
+
+All four checks reconnect and reconcile twice, asserting unchanged rows, revisions, and receipts. They do not cover replication failover, disk loss, packet delay, or an indefinite silent network partition. A local Docker daemon was unavailable during this milestone, so destructive tests run in CI. See the [pilot plan](postgres-pilot.md) for the remaining deployment and measurement gates.

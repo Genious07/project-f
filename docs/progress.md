@@ -7,7 +7,7 @@ Implemented on 21 November 2026.
 - Added an isolated Docker fault harness that creates its own loopback PostgreSQL target, accepts no existing DSN/container, and removes its container and data volume on ordinary exit.
 - Added four real failure scenarios: server SIGKILL before/after commit, TCP connection loss before commit, and a withheld COMMIT response after an independent connection observes the durable receipt.
 - Added three portable wire-framing tests and a dedicated CI job. Repeated recovery asserts no duplicate effects or inferred success without receipts.
-- Prepared a deployment pilot acceptance/measurement plan. No hosted target is selected or deployed; platform and workload decisions remain open.
+- Prepared a deployment pilot acceptance/measurement plan. The owner selected disposable local Docker; its first synthetic run passed ten repair trials and a four-worker contention/retry check. Added a repeatable runner with retained report/journal evidence and explicit version/provenance metadata. No hosted target is selected or deployed.
 
 Local validation: 241 regular tests discovered, six Linux-only checks skipped on macOS. The local Docker daemon is unavailable, so the four destructive scenarios require their dedicated CI job. Existing 37 PostgreSQL integration tests and installed-wheel checks remain required. Silent partitions, replication failover, storage loss, and real workload measurements are not claimed.
 

@@ -5,6 +5,7 @@ container and its anonymous data volume are removed even when tests fail.
 """
 from contextlib import closing
 import json
+import re
 from pathlib import Path
 import subprocess
 import socket
@@ -38,7 +39,9 @@ def docker(*args):
 
 
 class OwnedServer:
-    def __init__(self):
+    def __init__(self, image='postgres:18'):
+        if not re.fullmatch(r'postgres:18(?:\.[0-9]+)?', image):
+            raise ValueError('use an official PostgreSQL 18 image tag')
         self.name = 'foresee-fault-' + uuid.uuid4().hex
         self.created = False
         # An explicitly chosen host port stays fixed across container restarts.
@@ -49,7 +52,7 @@ class OwnedServer:
         try:
             docker('create', '--name', self.name, '--label', 'foresee.disposable=fault-test',
                    '--publish', f'127.0.0.1:{self.port}:5432', '-e', 'POSTGRES_PASSWORD=disposable-test-only',
-                   '-e', 'POSTGRES_DB=foresee_fault', 'postgres:18')
+                   '-e', 'POSTGRES_DB=foresee_fault', image)
             self.created = True
             docker('start', self.name)
             self.check_port()

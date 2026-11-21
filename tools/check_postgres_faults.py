@@ -7,6 +7,7 @@ from contextlib import closing
 import json
 from pathlib import Path
 import subprocess
+import socket
 import sys
 import tempfile
 import threading
@@ -25,10 +26,14 @@ from foresee.runtime import Runtime
 from postgres_fault_proxy import CommitProxy
 
 
+class FaultHarnessError(Exception):
+    """Infrastructure failures must not be caught as runtime commit failures."""
+
+
 def docker(*args):
     result = subprocess.run(['docker', *args], capture_output=True, text=True, timeout=90)
     if result.returncode:
-        raise RuntimeError('disposable Docker operation failed: ' + args[0])
+        raise FaultHarnessError('disposable Docker operation failed: ' + args[0])
     return result.stdout.strip()
 
 
@@ -36,19 +41,29 @@ class OwnedServer:
     def __init__(self):
         self.name = 'foresee-fault-' + uuid.uuid4().hex
         self.created = False
+        # An explicitly chosen host port stays fixed across container restarts.
+        # Docker's empty host-port allocation can change when the container starts.
+        with socket.socket() as reservation:
+            reservation.bind(('127.0.0.1', 0))
+            self.port = reservation.getsockname()[1]
         try:
             docker('create', '--name', self.name, '--label', 'foresee.disposable=fault-test',
-                   '--publish', '127.0.0.1::5432', '-e', 'POSTGRES_PASSWORD=disposable-test-only',
+                   '--publish', f'127.0.0.1:{self.port}:5432', '-e', 'POSTGRES_PASSWORD=disposable-test-only',
                    '-e', 'POSTGRES_DB=foresee_fault', 'postgres:18')
             self.created = True
             docker('start', self.name)
-            self.port = int(docker('port', self.name, '5432/tcp').rsplit(':', 1)[1])
+            self.check_port()
             self.dsn = (f'host=127.0.0.1 port={self.port} dbname=foresee_fault user=postgres '
                         'password=disposable-test-only sslmode=disable gssencmode=disable')
             self.ready()
         except BaseException:
             self.close()
             raise
+
+    def check_port(self):
+        actual = int(docker('port', self.name, '5432/tcp').rsplit(':', 1)[1])
+        if actual != self.port:
+            raise FaultHarnessError('disposable server port changed across restart')
 
     def ready(self):
         import psycopg
@@ -60,13 +75,14 @@ class OwnedServer:
                 return
             except psycopg.Error:
                 time.sleep(0.2)
-        raise RuntimeError('disposable PostgreSQL did not become ready')
+        raise FaultHarnessError('disposable PostgreSQL did not become ready')
 
     def crash_and_restart(self):
         if not self.created:
             raise RuntimeError('no owned test container')
         docker('kill', '--signal', 'KILL', self.name)
         docker('start', self.name)
+        self.check_port()
         self.ready()
 
     def close(self):

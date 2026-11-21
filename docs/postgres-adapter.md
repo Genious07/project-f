@@ -1,6 +1,6 @@
 # PostgreSQL adapter contract and implementation
 
-Milestone 3, 18 November 2026. The experimental resource adapter, Python journal recovery, and disposable database fixture are implemented. Project configuration and deployment support remain pending.
+Milestone 4, 21 November 2026. The experimental resource adapter, journal recovery, project CLI, provisioning example, and disposable database fixture are implemented. Hosted pilot validation remains pending.
 
 ## Scope and philosophy
 
@@ -47,13 +47,13 @@ Provide `FORESEE_TEST_POSTGRES_DSN` through the environment, pointing only to a 
 python -m unittest discover -s integration -v
 ```
 
-Missing configuration or driver is a test failure, not a skip. The dedicated CI job starts an isolated PostgreSQL 18 service with test-only credentials. Its six checks cover schema isolation/seed identity, receipt-write rollback, bounded row-lock contention and reuse after rollback, repeatable-read consistency, scoped/idempotent cleanup, and receipt uniqueness. These are database foundation tests. The same job also runs all twelve shared resource-adapter conformance checks plus seven PostgreSQL-specific adapter tests and nine journal/recovery tests, for 34 database tests total.
+Missing configuration or driver is a test failure, not a skip. The dedicated CI job starts an isolated PostgreSQL 18 service with test-only credentials. Its six checks cover schema isolation/seed identity, receipt-write rollback, bounded row-lock contention and reuse after rollback, repeatable-read consistency, scoped/idempotent cleanup, and receipt uniqueness. These are database foundation tests. The same job also runs all twelve shared resource-adapter conformance checks plus seven PostgreSQL-specific adapter tests and nine journal/recovery tests, plus two project CLI checks and one provisioning/role check, for 37 database tests total.
 
 A killed test process may leave its generated schema behind. On a disposable server, inspect the test namespace before removing abandoned schemas. The fixture does not scan or delete other schemas automatically. Successful teardown is registered for ordinary failures; this is not a server-wide resource management or cleanup service.
 
 ## Next acceptance gates
 
-1. Add project configuration, deployment examples, and installed-package PostgreSQL checks before exposing this as a supported runtime target.
+1. Run a real deployment pilot and measure contention, throughput, and operational recovery.
 2. Exercise server restart and transport disruption separately from the implemented client-process termination checks.
 
 ## Experimental Python API
@@ -78,7 +78,7 @@ Each adapter instance belongs to one caller. Use separate instances for concurre
 
 The adapter uses the fixture's connection and session timeout bounds. It never automatically retries. `receipt(commit_id)` returns a persisted row or `None`; absence alone cannot establish that another session has no in-flight operation. The conformance test for lost acknowledgement injects a failure after commit, not a network disconnection or process kill. Separate recovery tests now kill a real client subprocess with SIGKILL at all three transaction boundaries and reconnect to inspect durable evidence. These are client-crash tests, not server-crash or network-partition tests.
 
-The adapter has no filesystem `path`. Python callers may now use a local SQLite journal with an explicit `target_name`; project configuration and CLI target selection remain pending. No DSN is added to the report, reference, or receipt. Connection establishment, commit-driver failures, and remote reconciliation errors are redacted. Operators should still treat other raw database diagnostics as local diagnostic data.
+The adapter has no filesystem `path`. Python callers may now use a local SQLite journal with an explicit `target_name`; project configuration and CLI target selection are available below. No DSN is added to the report, reference, or receipt. Connection establishment, commit-driver failures, and remote reconciliation errors are redacted. Operators should still treat other raw database diagnostics as local diagnostic data.
 
 ## Journal and recovery API
 
@@ -100,3 +100,37 @@ The journal stores only a versioned adapter/name/schema reference in an additive
 Recovery resolves aliases only through the supplied mapping, requires the configured schema to match, and reads UUID plus receipt in one read-only repeatable-read transaction. Missing mappings, mismatched identity/schema, inconsistent receipts, and unavailable evidence remain unresolved. It writes only journal state, never target data. A lost reference cannot turn a remote target into a working local path. This mechanism is not authentication against a maliciously rewritten journal or an administrator copying target UUIDs.
 
 The process tests also inspect evidence while a worker is held before commit: a receipt not yet visible stays unresolved. After SIGKILL, the tests wait for the database session to disappear, verify rollback before commit, and verify exactly one receipt/revision increment after commit. Repeated reconciliation never retries the effect or claims the interrupted program finished.
+
+## Project CLI and deployment example
+
+Milestone 4, 21 November 2026. The project CLI now accepts either the original SQLite path or an explicit PostgreSQL target object in version 1 configuration:
+
+```json
+{"adapter":"postgres","name":"catalog","schema":"managed_catalog","dsn_env":"FORESEE_POSTGRES_DSN"}
+```
+
+Only the environment-variable name is stored. Set that variable through your local secret manager or deployment environment; do not put the DSN in project JSON, command-line arguments, or committed files. Missing credentials fail before connecting. Source, entry, candidate limits, patch validation, and local path collisions are checked before target access.
+
+Create a PostgreSQL project scaffold without opening or creating a database:
+
+```sh
+foresee init ./catalog-project --postgres-schema managed_catalog --target-name catalog --dsn-env FORESEE_POSTGRES_DSN
+foresee run --project ./catalog-project/foresee.json
+foresee reconcile ./catalog-project/.foresee/runs.db --project ./catalog-project/foresee.json
+```
+
+`init` produces empty `plans.json`; supply reviewed candidates matching your rows before running. PostgreSQL initialization rejects `--demo-data`. `run` opens only an existing managed target and never provisions it. Recovery loads only configuration and environment credentials; source and candidate files need not still exist. Without `--project`, PostgreSQL receipts remain unresolved. A fresh `run` is a new operation, not a retry of an interrupted one.
+
+For a new PostgreSQL 18 target, use [the provisioning example](../examples/postgres/provision.sql) as a separate owner. Choose a fresh schema and an existing restricted login role. Configure the owner's connection using normal PostgreSQL service/environment configuration, then run from the checkout:
+
+```sh
+psql -X -v ON_ERROR_STOP=1 -v schema=managed_catalog -v runtime_role=foresee_runtime -f examples/postgres/provision.sql
+```
+
+The script creates empty domain tables, revision zero, and a fresh target UUID atomically. It fails if the schema already exists. It neither creates roles/passwords nor alters an existing target. Load your domain rows as the owner before the first run. Subsequent external changes must follow the adapter's table-then-metadata lock order and advance the revision in the same transaction.
+
+The runtime role receives SELECT, derived-price UPDATE, revision UPDATE, receipt INSERT, schema USAGE, and catalog-row MAINTAIN. PostgreSQL 18 [permits the required explicit lock with MAINTAIN](https://www.postgresql.org/docs/18/sql-lock.html); the example therefore avoids granting source-field UPDATE. MAINTAIN also allows maintenance operations, so the runtime credential remains trusted application access. The role is not allowed to delete receipts, edit target identity, or edit source fields through these grants. Existing memberships, administrator privileges, and default grants must be assessed separately. The script uses the built-in [random UUID generator](https://www.postgresql.org/docs/18/functions-uuid.html).
+
+Retain the local `.foresee` directory on persistent storage and back it up along with the target. Provision network access, server authentication, TLS, credential rotation, and a non-owner runtime login through your deployment environment. This example does not configure those services. Stop the worker before recovery; inspect unresolved outcomes without issuing a new run automatically.
+
+CI executes 37 PostgreSQL checks, then builds a wheel and reruns those checks in a fresh environment outside the checkout. The provisioning test uses a random NOLOGIN role and schema and removes both; its disposable test database owner needs CREATEROLE as well as schema/trigger privileges. PostgreSQL 18 is the tested server version. Server restart, network partition, performance benchmarking, and a hosted pilot remain separate gates.

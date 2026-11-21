@@ -16,6 +16,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("wheel", type=Path)
     parser.add_argument("--evidence", action="store_true", help="also install the evidence extra and test signatures")
+    parser.add_argument("--postgres", action="store_true", help="install the PostgreSQL extra and run isolated database integration tests")
     args = parser.parse_args()
     wheel = args.wheel.resolve()
     env = {k: v for k, v in os.environ.items() if k not in {"PYTHONPATH", "PYTHONHOME"}}
@@ -69,6 +70,20 @@ else:
         subprocess.run([str(python), "-m", "unittest", "test_bounded_replay", "-v"],
                        cwd=root, env=env, check=True, timeout=30)
         print("PASS: installed bounded replay tests (Linux resource tests require Linux)")
+
+        if args.postgres:
+            if not env.get('FORESEE_TEST_POSTGRES_DSN'):
+                raise ValueError('PostgreSQL installation checks require a disposable test DSN')
+            subprocess.run([str(python), "-m", "pip", "install", str(wheel) + "[postgres]"],
+                           cwd=root, env=env, check=True, timeout=180)
+            integration = root / 'integration'
+            integration.mkdir()
+            for source in (Path(__file__).resolve().parents[1] / 'integration').glob('test_postgres*.py'):
+                shutil.copyfile(source, integration / source.name)
+            shutil.copytree(Path(__file__).resolve().parents[1] / 'examples/postgres', root / 'examples/postgres')
+            subprocess.run([str(python), '-m', 'unittest', 'discover', '-s', str(integration), '-v'],
+                           cwd=root, env=env, check=True, timeout=180)
+            print('PASS: installed PostgreSQL adapter, CLI, journal, and crash recovery checks')
 
         if args.evidence:
             subprocess.run([str(python), "-m", "pip", "install", str(wheel) + "[evidence]"],

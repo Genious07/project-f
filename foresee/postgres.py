@@ -12,7 +12,7 @@ from .catalog import Catalog, Snapshot, commit_identity, stable_digest
 from .target_reference import postgres_reference
 
 
-def _commit_errors(method):
+def _database_errors(method):
     @wraps(method)
     def wrapped(self, *args, **kwargs):
         try:
@@ -20,7 +20,7 @@ def _commit_errors(method):
         except self._driver.Error:
             # A transport failure around COMMIT has an unknown outcome. Never
             # expose database diagnostics (which can contain secrets) in reports.
-            raise RuntimeError('PostgreSQL commit failed; reconcile the original operation') from None
+            raise RuntimeError('PostgreSQL operation failed; reconcile the original operation if prepared') from None
     return wrapped
 
 
@@ -57,6 +57,9 @@ class PostgresCatalog:
                 self._read_snapshot()
                 self._read_target_id()
                 self._execute('SELECT commit_id, intent_digest, status, snapshot_digest, resulting_revision, detail FROM {foresee_receipts} LIMIT 0')
+        except psycopg.Error:
+            self.connection.close()
+            raise RuntimeError('PostgreSQL target could not be opened or validated') from None
         except BaseException:
             self.connection.close()
             raise
@@ -100,6 +103,7 @@ class PostgresCatalog:
         return value
 
     @property
+    @_database_errors
     def target_id(self):
         self._idle()
         return self._read_target_id()
@@ -124,6 +128,7 @@ class PostgresCatalog:
                     raise ValueError('invalid catalog numeric field')
         return Snapshot(revision, rows, stable_digest({'revision': revision, 'rows': rows}))
 
+    @_database_errors
     def snapshot(self):
         self._idle()
         with self.connection.transaction():
@@ -137,7 +142,7 @@ class PostgresCatalog:
             raise ValueError('invalid commit ID')
         return self._execute('SELECT * FROM {foresee_receipts} WHERE commit_id = %s', (commit_id,)).fetchone()
 
-    @_commit_errors
+    @_database_errors
     def commit(self, selection, program_digest, *, operation_id=None, fault_hook=None):
         self._idle()
         selection = deepcopy(selection)

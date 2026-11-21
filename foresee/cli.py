@@ -12,7 +12,7 @@ from .compiler import compile_source
 from .model import CompileFailure
 from .runtime import Runtime, replay_report, save_report
 from .journal import Journal, reconcile
-from .project import init_project, run_project, inspect_report
+from .project import init_project, run_project, inspect_report, project_recovery_targets
 
 
 def load_ir(source_path: Path) -> dict:
@@ -25,6 +25,9 @@ def main(argv: list[str] | None = None) -> int:
     init = sub.add_parser("init", help="initialize a new project with an empty prepared catalog")
     init.add_argument("directory", type=Path)
     init.add_argument("--demo-data", action="store_true", help="explicitly seed example catalog and candidates")
+    init.add_argument("--postgres-schema", help="configure an existing PostgreSQL schema without connecting")
+    init.add_argument("--target-name", default="catalog", help="local alias for PostgreSQL recovery")
+    init.add_argument("--dsn-env", default="FORESEE_POSTGRES_DSN", help="environment variable containing the PostgreSQL DSN")
     run = sub.add_parser("run", help="run against the configured existing catalog, without seeding")
     run.add_argument("--project", type=Path, default=Path("foresee.json"))
     run.add_argument("--entry")
@@ -44,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
     recover = sub.add_parser("reconcile", help="resolve recorded operations by reading target receipts without writes")
     recover.add_argument("journal", type=Path)
     recover.add_argument("--run-id")
+    recover.add_argument("--project", type=Path, help="load PostgreSQL alias and credential environment name from this project")
     replay = sub.add_parser("replay", help="verify a run report without live calls")
     replay.add_argument("report", type=Path)
     from . import evidence_cli
@@ -54,7 +58,12 @@ def main(argv: list[str] | None = None) -> int:
         if args.command in evidence_cli.COMMANDS:
             return evidence_cli.run(args)
         if args.command == "init":
-            print(init_project(args.directory, args.demo_data))
+            target = None
+            if args.postgres_schema is not None:
+                target = {'adapter': 'postgres', 'name': args.target_name, 'schema': args.postgres_schema, 'dsn_env': args.dsn_env}
+            elif args.target_name != 'catalog' or args.dsn_env != 'FORESEE_POSTGRES_DSN':
+                raise ValueError('--target-name and --dsn-env require --postgres-schema')
+            print(init_project(args.directory, args.demo_data, target=target))
             return 0
         if args.command == "run":
             result = run_project(args.project, args.entry)
@@ -64,7 +73,8 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(inspect_report(args.report), indent=2))
             return 0
         if args.command == "reconcile":
-            result = reconcile(args.journal, args.run_id)
+            targets = project_recovery_targets(args.project) if args.project is not None else None
+            result = reconcile(args.journal, args.run_id, postgres_targets=targets)
             print(json.dumps(result, indent=2, sort_keys=True))
             return 2 if any(r["state"] == "unresolved" for r in result["runs"]) else 0
         if args.command == "replay":

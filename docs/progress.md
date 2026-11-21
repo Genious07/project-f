@@ -1,5 +1,16 @@
 # Development progress
 
+## PostgreSQL milestone 4: project CLI and deployment example
+
+Implemented on 21 November 2026. The previous milestone's queued macOS checks completed successfully.
+
+- Added strict PostgreSQL project targets with environment-variable credentials, offline scaffolding, existing-target execution, and configured CLI reconciliation. SQLite path configurations remain compatible.
+- Kept source/candidate validation ahead of target access and redacted database failures at CLI-facing adapter boundaries.
+- Added an explicit fresh-schema provisioning script and tested runtime-role permissions, including derived-field updates and protected source fields, receipt deletion, and target identity.
+- Added five portable configuration tests and three database deployment/CLI tests. CI builds a wheel and repeats all PostgreSQL tests outside the checkout with the optional extra installed.
+
+Local validation: 238 regular tests discovered, six Linux-only checks skipped on macOS. PostgreSQL CI runs 37 database tests from source and repeats them from an installed wheel. Hosted verification is required for this commit. Next: server/transport fault exercises, a real deployment pilot, and contention/performance measurements. Published release artifacts are unchanged.
+
 ## PostgreSQL milestone 3: journal recovery and process termination
 
 Implemented on 18 November 2026.

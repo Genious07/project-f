@@ -108,3 +108,7 @@ Model and snapshot provider failures produce `provider_error`. A journaled commi
 The SQLite resource and run journal implement the corresponding local contracts. The clock supplies report metadata only and does not influence selection; offline reproduction uses a fixed clock. Resource simulation and method signatures remain catalog-specific. Implementing the protocol alone does not establish conformance for a new backend.
 
 Generated project gitignores exclude runtime output and database files. Candidate fixtures and source are ordinary project files and may contain sensitive user data; apply the [evidence retention and sharing policy](offline-replay.md) when deciding what to publish.
+
+## PostgreSQL projects
+
+The optional PostgreSQL adapter now supports `init --postgres-schema`, configured `run`, and `reconcile --project`. Existing SQLite configurations are unchanged. See the [PostgreSQL project and deployment guide](postgres-adapter.md#project-cli-and-deployment-example) for credential environment names, provisioning, runtime-role grants, and recovery.
